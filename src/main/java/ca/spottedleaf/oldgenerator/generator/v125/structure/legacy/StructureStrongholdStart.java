@@ -3,7 +3,7 @@ package ca.spottedleaf.oldgenerator.generator.v125.structure.legacy;
 import java.util.ArrayList;
 import java.util.Random;
 
-class StructureStrongholdStart extends StructureStart
+public class StructureStrongholdStart extends StructureStart
 {
     public StructureStrongholdStart(World par1World, Random par2Random, int par3, int par4)
     {
