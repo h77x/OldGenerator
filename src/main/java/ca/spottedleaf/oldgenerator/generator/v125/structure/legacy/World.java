@@ -6,6 +6,7 @@ import ca.spottedleaf.oldgenerator.world.BlockAccess;
 public final class World {
     public final WorldProvider worldProvider=new WorldProvider();
     public boolean editingBlocks;
+    public boolean scheduledUpdatesAreImmediate;
     private final BlockAccess access;
     private final long seed;
     private final WorldChunkManager manager;
