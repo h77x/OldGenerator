@@ -133,7 +133,7 @@ public final class V125StructureGenerator {
         }
     }
 
-    private static void generateCorridor(final ChunkData data, final int targetChunkX, final int targetChunkZ,
+    private static void generateCorridor(final BlockAccess data, final int targetChunkX, final int targetChunkZ,
                                          final int startX, final int y, final int startZ,
                                          final int dx, final int dz, final int length) {
         for (int step = 0; step < length; ++step) {
@@ -180,7 +180,7 @@ public final class V125StructureGenerator {
         }
     }
 
-    private static void buildRoad(final ChunkData data, final int targetChunkX, final int targetChunkZ,
+    private static void buildRoad(final BlockAccess data, final int targetChunkX, final int targetChunkZ,
                                   final int x, final int y, final int z, final int dx, final int dz) {
         final int steps = Math.max(Math.abs(dx), Math.abs(dz));
         final int sx = Integer.compare(dx, 0);
@@ -196,7 +196,7 @@ public final class V125StructureGenerator {
         }
     }
 
-    private static void buildWell(final ChunkData data, final int targetChunkX, final int targetChunkZ,
+    private static void buildWell(final BlockAccess data, final int targetChunkX, final int targetChunkZ,
                                   final int x, final int y, final int z) {
         for (int dx = -2; dx <= 2; ++dx) {
             for (int dz = -2; dz <= 2; ++dz) {
@@ -212,7 +212,7 @@ public final class V125StructureGenerator {
         }
     }
 
-    private static void buildHouse(final ChunkData data, final int targetChunkX, final int targetChunkZ,
+    private static void buildHouse(final BlockAccess data, final int targetChunkX, final int targetChunkZ,
                                    final int x, final int y, final int z) {
         for (int dx = -3; dx <= 3; ++dx) {
             for (int dz = -3; dz <= 3; ++dz) {
@@ -246,7 +246,7 @@ public final class V125StructureGenerator {
         }
     }
 
-    private static void buildStoneRoom(final ChunkData data, final int targetChunkX, final int targetChunkZ,
+    private static void buildStoneRoom(final BlockAccess data, final int targetChunkX, final int targetChunkZ,
                                        final int x, final int y, final int z, final boolean portal) {
         final Material wall = Material.STONE_BRICKS;
         final Material floor = portal ? Material.END_PORTAL_FRAME : Material.STONE_BRICKS;
@@ -269,11 +269,11 @@ public final class V125StructureGenerator {
 
     private static int surfaceY(final BlockAccess data, final int targetChunkX, final int targetChunkZ,
                                 final int worldX, final int worldZ) {
-        final int lx = worldX - (targetChunkX << 4);
-        final int lz = worldZ - (targetChunkZ << 4);
-        if (lx < 0 || lx > 15 || lz < 0 || lz > 15) return 63;
+        final int localX = worldX - (targetChunkX << 4);
+        final int localZ = worldZ - (targetChunkZ << 4);
+        if (localX < 0 || localX > 15 || localZ < 0 || localZ > 15) return 63;
         for (int y = MAX_Y; y > 0; --y) {
-            if (!data.getType(lx, y, lz).isAir()) return y + 1;
+            if (!data.getType(worldX, y, worldZ).isAir()) return y + 1;
         }
         return 63;
     }
@@ -284,7 +284,7 @@ public final class V125StructureGenerator {
         final int localX = worldX - (chunkX << 4);
         final int localZ = worldZ - (chunkZ << 4);
         if (localX < 0 || localX > 15 || localZ < 0 || localZ > 15) return;
-        data.setBlock(localX, y, localZ, material);
+        data.setType(worldX, y, worldZ, material, false);
     }
 
     public static final class Result {
