@@ -8,6 +8,16 @@ public class BiomeGenBase {
         mushroomIsland=of(14), mushroomIslandShore=of(15), beach=of(16), desertHills=of(17),
         forestHills=of(18), taigaHills=of(19), extremeHillsEdge=of(20), jungle=of(21), jungleHills=of(22);
     public final int biomeID;
+    public byte topBlock = (byte)Block.grass.blockID;
+    public byte fillerBlock = (byte)Block.dirt.blockID;
     private BiomeGenBase(int id){this.biomeID=id; biomeList[id]=this;}
     private static BiomeGenBase of(int id){return new BiomeGenBase(id);}
+    static {
+        mushroomIsland.topBlock = (byte)Block.mycelium.blockID;
+        mushroomIslandShore.topBlock = (byte)Block.mycelium.blockID;
+        desert.topBlock = (byte)Block.sand.blockID;
+        desert.fillerBlock = (byte)Block.sand.blockID;
+        beach.topBlock = (byte)Block.sand.blockID;
+        beach.fillerBlock = (byte)Block.sand.blockID;
+    }
 }
