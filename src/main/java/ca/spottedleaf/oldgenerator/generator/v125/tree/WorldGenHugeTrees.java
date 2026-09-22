@@ -1,5 +1,6 @@
 package ca.spottedleaf.oldgenerator.generator.v125.tree;
 
+import ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.*;
 import java.util.Random;
 
 public class WorldGenHugeTrees extends WorldGenerator
