@@ -1,10 +1,10 @@
 package ca.spottedleaf.oldgenerator.generator.v125;
 
-import ca.spottedleaf.oldgenerator.generator.b173.populator.*;
 import ca.spottedleaf.oldgenerator.generator.v125.noise.NoiseGeneratorOctaves125;
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Caves;
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Ravine;
 import ca.spottedleaf.oldgenerator.generator.v125.populate.*;
+import ca.spottedleaf.oldgenerator.generator.v125.populate.legacy.*;
 import ca.spottedleaf.oldgenerator.generator.v125.tree.*;
 import ca.spottedleaf.oldgenerator.generator.v125.structure.V125StructureGenerator;
 import org.bukkit.generator.BlockPopulator;
@@ -380,6 +380,8 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         final int biomeId = this.biomeSource
                 .getBlockBiomeIds(seed, blockX + 16, blockZ + 16, 1, 1)[0];
         final boolean villageStart = structures.hasVillage();
+        final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World legacyWorld =
+                new ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World(seed, access, this.biomeSource);
 
         /*
          * ChunkProviderGenerate.populate():
@@ -389,7 +391,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             final int x = blockX + random.nextInt(16) + 8;
             final int y = random.nextInt(128);
             final int z = blockZ + random.nextInt(16) + 8;
-            new WorldGenLakes173(BlockConstants.SOURCE_WATER).populate(access, random, x, y, z);
+            new WorldGenLakes(Block.waterStill.blockID).generate(legacyWorld, random, x, y, z);
         }
 
         if (!villageStart && random.nextInt(8) == 0) {
@@ -397,7 +399,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             final int y = random.nextInt(random.nextInt(120) + 8);
             final int z = blockZ + random.nextInt(16) + 8;
             if (y < SEA_LEVEL || random.nextInt(10) == 0) {
-                new WorldGenLakes173(BlockConstants.SOURCE_LAVA).populate(access, random, x, y, z);
+                new WorldGenLakes(Block.lavaStill.blockID).generate(legacyWorld, random, x, y, z);
             }
         }
 
@@ -405,36 +407,34 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             final int x = blockX + random.nextInt(16) + 8;
             final int y = random.nextInt(128);
             final int z = blockZ + random.nextInt(16) + 8;
-            new WorldGenDungeons173().populate(access, random, x, y, z);
+            new WorldGenDungeons().generate(legacyWorld, random, x, y, z);
         }
 
         decorateBiome(access, random, biomeId, blockX, blockZ);
         freezeAndSnow(access, biomeId, blockX, blockZ);
     }
 
-    private void generateOres(final BlockAccess world, final Random random,
-                              final int baseX, final int baseZ) {
-        ore(world, random, new WorldGenMinable173(BlockConstants.DIRT, 32), 20, baseX, baseZ, 0, 128);
-        ore(world, random, new WorldGenMinable173(BlockConstants.GRAVEL, 32), 10, baseX, baseZ, 0, 128);
-        ore(world, random, new WorldGenMinable173(BlockConstants.COAL_ORE, 16), 20, baseX, baseZ, 0, 128);
-        ore(world, random, new WorldGenMinable173(BlockConstants.IRON_ORE, 8), 20, baseX, baseZ, 0, 64);
-        ore(world, random, new WorldGenMinable173(BlockConstants.GOLD_ORE, 8), 2, baseX, baseZ, 0, 32);
-        ore(world, random, new WorldGenMinable173(BlockConstants.REDSTONE_ORE, 7), 8, baseX, baseZ, 0, 16);
-        ore(world, random, new WorldGenMinable173(BlockConstants.DIAMOND_ORE, 7), 1, baseX, baseZ, 0, 16);
-
-        final WorldGenMinable173 lapis = new WorldGenMinable173(BlockConstants.LAPIS_ORE, 6);
+    private void generateOres(final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World world,
+                              final Random random, final int baseX, final int baseZ) {
+        ore(world, random, new WorldGenMinable(Block.dirt.blockID, 32), 20, baseX, baseZ, 0, 128);
+        ore(world, random, new WorldGenMinable(Block.gravel.blockID, 32), 10, baseX, baseZ, 0, 128);
+        ore(world, random, new WorldGenMinable(Block.oreCoal.blockID, 16), 20, baseX, baseZ, 0, 128);
+        ore(world, random, new WorldGenMinable(Block.oreIron.blockID, 8), 20, baseX, baseZ, 0, 64);
+        ore(world, random, new WorldGenMinable(Block.oreGold.blockID, 8), 2, baseX, baseZ, 0, 32);
+        ore(world, random, new WorldGenMinable(Block.redstone.blockID, 7), 8, baseX, baseZ, 0, 16);
+        ore(world, random, new WorldGenMinable(Block.oreDiamond.blockID, 7), 1, baseX, baseZ, 0, 16);
+        final WorldGenMinable lapis = new WorldGenMinable(Block.oreLapis.blockID, 6);
         final int x = baseX + random.nextInt(16);
         final int z = baseZ + random.nextInt(16);
         final int y = random.nextInt(16) + random.nextInt(16);
-        lapis.populate(world, random, x, y, z);
+        lapis.generate(world, random, x, y, z);
     }
 
-    private static void ore(final BlockAccess world, final Random random,
-                            final WorldGenMinable173 generator, final int count,
-                            final int baseX, final int baseZ,
-                            final int minY, final int maxY) {
+    private static void ore(final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World world,
+                            final Random random, final WorldGenMinable generator, final int count,
+                            final int baseX, final int baseZ, final int minY, final int maxY) {
         for (int i = 0; i < count; ++i) {
-            generator.populate(world, random,
+            generator.generate(world, random,
                     baseX + random.nextInt(16),
                     random.nextInt(maxY - minY) + minY,
                     baseZ + random.nextInt(16));
@@ -509,7 +509,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         }
 
         // Ores are the first BiomeDecorator stage.
-        generateOres(world, random, baseX, baseZ);
+        generateOres(legacyWorld, random, baseX, baseZ);
 
         // Then the 3 sand patches, clay patch, and final sand patch.
         for (int i = 0; i < 3; ++i) generateSandPatch(world, random, baseX, baseZ, 7);
@@ -537,13 +537,13 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             int x = baseX + random.nextInt(16) + 8;
             int y = random.nextInt(128);
             int z = baseZ + random.nextInt(16) + 8;
-            new WorldGenFlowers173(BlockConstants.DANDELION).populate(world, random, x, y, z);
+            new WorldGenFlowers(Block.plantYellow.blockID).generate(legacyWorld, random, x, y, z);
 
             if (random.nextInt(4) == 0) {
                 x = baseX + random.nextInt(16) + 8;
                 y = random.nextInt(128);
                 z = baseZ + random.nextInt(16) + 8;
-                new WorldGenFlowers173(BlockConstants.POPPY).populate(world, random, x, y, z);
+                new WorldGenFlowers(Block.plantRed.blockID).generate(legacyWorld, random, x, y, z);
             }
         }
 
@@ -551,14 +551,14 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             final int x = baseX + random.nextInt(16) + 8;
             final int y = random.nextInt(128);
             final int z = baseZ + random.nextInt(16) + 8;
-            new WorldGenGrass173(BlockConstants.SHORT_GRASS).populate(world, random, x, y, z);
+            new WorldGenTallGrass(Block.tallGrass.blockID, biomeId == 21 || biomeId == 22 ? (random.nextInt(4) == 0 ? 2 : 1) : 1).generate(legacyWorld, random, x, y, z);
         }
 
         for (int i = 0; i < deadBush; ++i) {
             final int x = baseX + random.nextInt(16) + 8;
             final int y = random.nextInt(128);
             final int z = baseZ + random.nextInt(16) + 8;
-            new WorldGenDeadBush173(BlockConstants.DEAD_BUSH).populate(world, random, x, y, z);
+            new WorldGenDeadBush(Block.deadBush.blockID).generate(legacyWorld, random, x, y, z);
         }
 
         for (int i = 0; i < waterlilies; ++i) {
@@ -566,7 +566,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             final int z = baseZ + random.nextInt(16) + 8;
             int y = random.nextInt(128);
             while (y > 0 && world.getType(x, y - 1, z) == Material.AIR) --y;
-            new WorldGenWaterlily125().generate(world, random, x, y, z);
+            new WorldGenWaterlily().generate(legacyWorld, random, x, y, z);
         }
 
         for (int i = 0; i < mushrooms; ++i) {
@@ -574,13 +574,13 @@ public final class V125ChunkGenerator extends ChunkGenerator {
                 final int x = baseX + random.nextInt(16) + 8;
                 final int z = baseZ + random.nextInt(16) + 8;
                 final int y = Math.min(127, world.getHighestBlockYAt(x, z));
-                new WorldGenFlowers173(BlockConstants.BROWN_MUSHROOM).populate(world, random, x, y, z);
+                new WorldGenFlowers(Block.mushroomBrown.blockID).generate(legacyWorld, random, x, y, z);
             }
             if (random.nextInt(8) == 0) {
                 final int x = baseX + random.nextInt(16) + 8;
                 final int y = random.nextInt(128);
                 final int z = baseZ + random.nextInt(16) + 8;
-                new WorldGenFlowers173(BlockConstants.RED_MUSHROOM).populate(world, random, x, y, z);
+                new WorldGenFlowers(Block.mushroomRed.blockID).generate(legacyWorld, random, x, y, z);
             }
         }
 
@@ -600,13 +600,13 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         for (int i = 0; i < 10; ++i) generateReed(world, random, baseX, baseZ);
 
         if (random.nextInt(32) == 0) {
-            new WorldGenPumpkin173().populate(world, random,
+            new WorldGenPumpkin().generate(legacyWorld, random,
                     baseX + random.nextInt(16) + 8, random.nextInt(128),
                     baseZ + random.nextInt(16) + 8);
         }
 
         for (int i = 0; i < cacti; ++i) {
-            new WorldGenCactus173().populate(world, random,
+            new WorldGenCactus().generate(legacyWorld, random,
                     baseX + random.nextInt(16) + 8, random.nextInt(128),
                     baseZ + random.nextInt(16) + 8);
         }
@@ -628,7 +628,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         if ((biomeId == 2 || biomeId == 17) && random.nextInt(1000) == 0) {
             final int x = baseX + random.nextInt(16) + 8;
             final int z = baseZ + random.nextInt(16) + 8;
-            new WorldGenDesertWell125().generate(world, random, x, Math.min(127, world.getHighestBlockYAt(x, z) + 1), z);
+            new WorldGenDesertWells().generate(legacyWorld, random, x, Math.min(127, world.getHighestBlockYAt(x, z) + 1), z);
         }
     }
 
@@ -645,7 +645,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         final int x = baseX + random.nextInt(16) + 8;
         final int z = baseZ + random.nextInt(16) + 8;
         final int y = Math.min(127, world.getHighestBlockYAt(x, z));
-        new WorldGenClay173(4).populate(world, random, x, y, z);
+        new WorldGenClay(4).generate(legacyWorld, random, x, y, z);
     }
 
     private static void generateTree(final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World world, final Random random,
@@ -696,19 +696,19 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         final int x = baseX + random.nextInt(16) + 8;
         final int y = random.nextInt(128);
         final int z = baseZ + random.nextInt(16) + 8;
-        new WorldGenReed173().populate(world, random, x, y, z);
+        new WorldGenReed().generate(legacyWorld, random, x, y, z);
     }
 
     private static void decorateLiquids(final BlockAccess world, final Random random,
                                         final int baseX, final int baseZ) {
         for (int i = 0; i < 50; ++i) {
-            new WorldGenLiquids173(BlockConstants.SOURCE_WATER).populate(world, random,
+            new WorldGenLiquids(Block.waterMoving.blockID).generate(legacyWorld, random,
                     baseX + random.nextInt(16) + 8,
                     random.nextInt(random.nextInt(120) + 8),
                     baseZ + random.nextInt(16) + 8);
         }
         for (int i = 0; i < 20; ++i) {
-            new WorldGenLiquids173(BlockConstants.SOURCE_LAVA).populate(world, random,
+            new WorldGenLiquids(Block.lavaMoving.blockID).generate(legacyWorld, random,
                     baseX + random.nextInt(16) + 8,
                     random.nextInt(random.nextInt(random.nextInt(112) + 8) + 8),
                     baseZ + random.nextInt(16) + 8);
