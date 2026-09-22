@@ -372,13 +372,13 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         final Random random = new Random(seed);
         final long oddX = random.nextLong() / 2L * 2L + 1L;
         final long oddZ = random.nextLong() / 2L * 2L + 1L;
-        random.setSeed((long) chunkX * oddX + (long) chunkZ * oddZ ^ world.getSeed());
+        random.setSeed((long) chunkX * oddX + (long) chunkZ * oddZ ^ seed);
 
         new V125StructureGenerator().generate(seed, chunkX, chunkZ, access, this.biomeSource);
         final int biomeId = this.biomeSource
                 .getBlockBiomeIds(seed, blockX + 16, blockZ + 16, 1, 1)[0];
         final boolean villageStart =
-                new V125StructureGenerator().hasVillageStart(world.getSeed(), chunkX, chunkZ, this.biomeSource);
+                new V125StructureGenerator().hasVillageStart(seed, chunkX, chunkZ, this.biomeSource);
 
         /*
          * ChunkProviderGenerate.populate():
