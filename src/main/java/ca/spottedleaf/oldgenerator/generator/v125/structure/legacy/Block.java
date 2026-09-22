@@ -93,9 +93,16 @@ public final class Block {
     public static final Block mushroomBrown = b(39, Material.BROWN_MUSHROOM);
     public static final Block mushroomRed = b(40, Material.RED_MUSHROOM);
     public static final Block mycelium = b(110, Material.MYCELIUM);
+    public static final Block vine = b(106, Material.VINE);
 
     public boolean canPlaceBlockAt(final World world, final int x, final int y, final int z) {
         return world.isAirBlock(x, y, z);
+    }
+    public boolean isLeaves(final World world, final int x, final int y, final int z) {
+        return this == leaves;
+    }
+    public boolean canBeReplacedByLeaves(final World world, final int x, final int y, final int z) {
+        return this == air || this == leaves || this == vine || this == waterMoving || this == waterStill;
     }
 
     public static final class BlockMaterial {
