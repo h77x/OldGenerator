@@ -18,9 +18,11 @@ public final class World {
     public long getSeed(){return seed;}
     public WorldChunkManager getWorldChunkManager(){return manager;}
     public int getBlockId(int x,int y,int z){
-        Material m=access.getType(x,y,z);
-        for(Block b:Block.blocksList) if(b!=null && b.material==m) return b.blockID;
-        return m==Material.AIR?0:1;
+        final Material m=access.getType(x,y,z);
+        if (m == org.bukkit.Material.WATER) return Block.waterStill.blockID;
+        if (m == org.bukkit.Material.LAVA) return Block.lavaStill.blockID;
+        for (Block b : Block.blocksList) if (b != null && b.material == m) return b.blockID;
+        return m == org.bukkit.Material.AIR ? 0 : 1;
     }
     public Material getBlockMaterial(int x,int y,int z){
         int id=getBlockId(x,y,z); Block b=id>=0&&id<Block.blocksList.length?Block.blocksList[id]:null;
