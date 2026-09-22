@@ -2,7 +2,6 @@ package ca.spottedleaf.oldgenerator.generator.v125.structure.legacy;
 
 import ca.spottedleaf.oldgenerator.generator.v125.V125BiomeSource;
 import ca.spottedleaf.oldgenerator.world.BlockAccess;
-import org.bukkit.Material;
 
 public final class World {
     public final WorldProvider worldProvider=new WorldProvider();
@@ -18,7 +17,7 @@ public final class World {
     public long getSeed(){return seed;}
     public WorldChunkManager getWorldChunkManager(){return manager;}
     public int getBlockId(int x,int y,int z){
-        final Material m=access.getType(x,y,z);
+        final org.bukkit.Material m=access.getType(x,y,z);
         if (m == org.bukkit.Material.WATER) return Block.waterStill.blockID;
         if (m == org.bukkit.Material.LAVA) return Block.lavaStill.blockID;
         for (Block b : Block.blocksList) if (b != null && b.material == m) return b.blockID;
@@ -43,7 +42,7 @@ public final class World {
     private void setInternal(int x,int y,int z,int id,int meta){
         if(y<access.getMinHeight()||y>access.getMaxHeight())return;
         Block b=(id>=0&&id<Block.blocksList.length)?Block.blocksList[id]:null;
-        Material m=b==null?Material.AIR:b.material;
+        org.bukkit.Material m=b==null?org.bukkit.Material.AIR:b.material;
         access.setType(x,y,z,m,false);
     }
     public int getTopSolidOrLiquidBlock(int x,int z){return access.getHighestBlockYAt(x,z);}
