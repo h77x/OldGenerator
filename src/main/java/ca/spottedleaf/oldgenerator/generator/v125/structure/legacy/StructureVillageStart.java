@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
 
-class StructureVillageStart extends StructureStart
+public class StructureVillageStart extends StructureStart
 {
     /** well ... thats what it does */
     private boolean hasMoreThanTwoComponents = false;
