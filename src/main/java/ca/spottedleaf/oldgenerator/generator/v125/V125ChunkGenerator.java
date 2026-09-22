@@ -6,7 +6,6 @@ import ca.spottedleaf.oldgenerator.generator.v125.map.V125Caves;
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Ravine;
 import ca.spottedleaf.oldgenerator.generator.v125.populate.*;
 import ca.spottedleaf.oldgenerator.generator.v125.tree.*;
-import ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World;
 import ca.spottedleaf.oldgenerator.generator.v125.structure.V125StructureGenerator;
 import org.bukkit.generator.BlockPopulator;
 import java.util.Collections;
@@ -524,7 +523,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             final int x = baseX + random.nextInt(16) + 8;
             final int z = baseZ + random.nextInt(16) + 8;
             final int y = Math.min(127, world.getHighestBlockYAt(x, z));
-            generateTree(new World(world), random, biomeId, x, y, z);
+            generateTree(new ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World(world), random, biomeId, x, y, z);
         }
 
         for (int i = 0; i < bigMushrooms; ++i) {
@@ -617,7 +616,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
 
         // BiomeGenJungle.decorate(): vines are generated after the base decorator.
         if (biomeId == 21 || biomeId == 22) {
-            final World legacyWorld = new World(world);
+            final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World legacyWorld = new ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World(world);
             for (int i = 0; i < 50; ++i) {
                 new WorldGenVines().generate(legacyWorld, random,
                         baseX + random.nextInt(16) + 8, 64,
@@ -649,7 +648,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         new WorldGenClay173(4).populate(world, random, x, y, z);
     }
 
-    private static void generateTree(final World world, final Random random,
+    private static void generateTree(final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World world, final Random random,
                                      final int biomeId, final int x, final int y, final int z) {
         switch (biomeId) {
             case 6:
