@@ -5,8 +5,6 @@ import ca.spottedleaf.oldgenerator.generator.v125.tree.WorldGenerator;
 
 import java.util.Random;
 
-import net.minecraft.src.forge.MinecraftForge;
-
 public class WorldGenDungeons extends WorldGenerator
 {
     public boolean generate(World par1World, Random par2Random, int par3, int par4, int par5)
@@ -122,9 +120,9 @@ public class WorldGenDungeons extends WorldGenerator
 
                                     if (var16 != null)
                                     {
-                                        for (int var17 = 0; var17 < MinecraftForge.getDungeonLootTries(); ++var17)
+                                        for (int var17 = 0; var17 < 8; ++var17)
                                         {
-                                            ItemStack var18 = MinecraftForge.getRandomDungeonLoot(par2Random);
+                                            ItemStack var18 = this.pickCheckLootItem(par2Random);
 
                                             if (var18 != null)
                                             {
