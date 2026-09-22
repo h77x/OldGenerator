@@ -289,7 +289,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         for (int x = 0; x < 16; ++x) {
             for (int z = 0; z < 16; ++z) {
                 final int biomeId = biomeIds[z + x * 16];
-                final float temperature = biomeId == 12 || biomeId == 13 ? 0.0F : 0.8F;
+                final float temperature = biomeTemperature(biomeId);
                 int thickness = (int)(stoneNoise[x + z * 16] / 3.0D + 3.0D + chunkRandom.nextDouble() * 0.25D);
                 int runDepth = -1;
                 Material top = topForBiome(biomeId);
@@ -342,6 +342,40 @@ public final class V125ChunkGenerator extends ChunkGenerator {
                 return Material.MYCELIUM;
             default:
                 return Material.GRASS_BLOCK;
+        }
+    }
+
+    private static float biomeTemperature(final int biomeId) {
+        switch (biomeId) {
+            case 2:
+            case 17:
+                return 2.0F;
+            case 3:
+            case 20:
+                return 0.2F;
+            case 4:
+            case 18:
+                return 0.7F;
+            case 5:
+            case 19:
+                return 0.05F;
+            case 6:
+                return 0.8F;
+            case 10:
+            case 11:
+            case 12:
+            case 13:
+                return 0.0F;
+            case 14:
+            case 15:
+                return 0.9F;
+            case 16:
+                return 0.8F;
+            case 21:
+            case 22:
+                return 1.2F;
+            default:
+                return 0.8F;
         }
     }
 
