@@ -4,7 +4,7 @@ import org.bukkit.Material;
 
 public final class Block {
     public final int blockID;
-    public final BlockMaterial blockMaterial;
+    public final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.Material blockMaterial;
     public final Material material;
 
     public static final Block[] blocksList = new Block[256];
@@ -13,7 +13,7 @@ public final class Block {
     private Block(final int id, final Material material, final boolean solid, final boolean liquid) {
         this.blockID = id;
         this.material = material;
-        this.blockMaterial = new BlockMaterial(solid, liquid);
+        this.blockMaterial = liquid ? (material == Material.WATER ? ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.Material.water : ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.Material.lava) : new ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.Material(solid, false);
         if (id >= 0 && id < blocksList.length) {
             blocksList[id] = this;
             opaqueCubeLookup[id] = solid;
@@ -124,11 +124,4 @@ public final class Block {
                 && blocksList[id].blockMaterial.isSolid();
     }
 
-    public static final class BlockMaterial {
-        private final boolean solid;
-        private final boolean liquid;
-        BlockMaterial(final boolean solid, final boolean liquid) { this.solid = solid; this.liquid = liquid; }
-        public boolean isLiquid() { return this.liquid; }
-        public boolean isSolid() { return this.solid; }
-    }
 }
