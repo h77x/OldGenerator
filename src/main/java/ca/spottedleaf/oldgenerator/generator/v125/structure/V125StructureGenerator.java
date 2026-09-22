@@ -64,6 +64,7 @@ public final class V125StructureGenerator {
 
     private static boolean isMineshaftStart(final long seed, final int chunkX, final int chunkZ) {
         final Random random = mapSeedRandom(seed, chunkX, chunkZ);
+        random.nextInt();
         return random.nextInt(100) == 0 &&
                 random.nextInt(80) < Math.max(Math.abs(chunkX), Math.abs(chunkZ));
     }
@@ -97,44 +98,18 @@ public final class V125StructureGenerator {
         final int[] allowed = {2, 4, 3, 6, 5, 12, 13, 17, 18, 20, 21, 22};
         final Random random = new Random(seed);
         double angle = random.nextDouble() * Math.PI * 2.0D;
-
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < result.length; ++i) {
             final double distance = (1.25D + random.nextDouble()) * 32.0D;
             int chunkX = (int)Math.round(Math.cos(angle) * distance);
             int chunkZ = (int)Math.round(Math.sin(angle) * distance);
-
-            final int centerX = (chunkX << 4) + 8;
-            final int centerZ = (chunkZ << 4) + 8;
-            final int radius = 112;
-            final int minX = (centerX - radius) >> 2;
-            final int minZ = (centerZ - radius) >> 2;
-            final int maxX = (centerX + radius) >> 2;
-            final int maxZ = (centerZ + radius) >> 2;
-            final int width = maxX - minX + 1;
-            final int height = maxZ - minZ + 1;
-
-            final int[] layer = biomes.getBiomeIds(seed, minX, minZ, width, height);
-            int selected = 0;
-            int selectedX = chunkX;
-            int selectedZ = chunkZ;
-            for (int idx = 0; idx < layer.length; ++idx) {
-                boolean okay = false;
-                for (int biome : allowed) {
-                    if (layer[idx] == biome) {
-                        okay = true;
-                        break;
-                    }
-                }
-                if (!okay) continue;
-                ++selected;
-                if (random.nextInt(selected) == 0) {
-                    selectedX = (minX + idx % width) << 2 >> 4;
-                    selectedZ = (minZ + idx / width) << 2 >> 4;
-                }
+            final long[] position = biomes.findBiomePosition(
+                    seed, (chunkX << 4) + 8, (chunkZ << 4) + 8, 112, allowed, random);
+            if (position != null) {
+                chunkX = (int)(position[0] >> 4);
+                chunkZ = (int)(position[1] >> 4);
             }
-
-            result[i][0] = selected == 0 ? chunkX : selectedX;
-            result[i][1] = selected == 0 ? chunkZ : selectedZ;
+            result[i][0] = chunkX;
+            result[i][1] = chunkZ;
             angle += Math.PI * 2.0D / 3.0D;
         }
         return result;
