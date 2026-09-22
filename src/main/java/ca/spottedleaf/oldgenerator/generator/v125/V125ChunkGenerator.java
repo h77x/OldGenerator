@@ -87,7 +87,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
 
         final ChunkData data = this.createChunkData(world);
         final long seed = world.getSeed();
-        final int[] biomes = this.biomeSource.getBiomeIds(seed, chunkX * 16, chunkZ * 16, 16, 16);
+        final int[] biomes = this.biomeSource.getBlockBiomeIds(seed, chunkX * 16, chunkZ * 16, 16, 16);
 
         for (int z = 0; z < 16; ++z) {
             for (int x = 0; x < 16; ++x) {
@@ -367,7 +367,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         random.setSeed((long)chunkX * oddX + (long)chunkZ * oddZ ^ world.getSeed());
 
         final BlockAccess access = new WorldBlockAccess(world, 0, 127);
-        final int[] centerBiome = this.biomeSource.getBiomeIds(world.getSeed(), blockX + 16, blockZ + 16, 1, 1);
+        final int[] centerBiome = this.biomeSource.getBlockBiomeIds(world.getSeed(), blockX + 16, blockZ + 16, 1, 1);
         final int biomeId = centerBiome[0];
 
         // MapGenStructure#generateStructuresInChunk runs first in vanilla.
