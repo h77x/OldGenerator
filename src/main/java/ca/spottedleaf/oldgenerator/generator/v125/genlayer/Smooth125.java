@@ -1,0 +1,2 @@
+package ca.spottedleaf.oldgenerator.generator.v125.genlayer;
+public final class Smooth125 extends GenLayer125 { public Smooth125(final long s,final GenLayer125 p){super(s);parent=p;} @Override public int[] getInts(int x,int z,int w,int h){int pw=w+2;int[]p=parent.getInts(x-1,z-1,pw,h+2),o=new int[w*h];for(int iz=0;iz<h;iz++)for(int ix=0;ix<w;ix++){int a=p[ix+(iz+1)*pw],b=p[ix+2+(iz+1)*pw],c=p[ix+1+iz*pw],d=p[ix+1+(iz+2)*pw],v=p[ix+1+(iz+1)*pw];if(a==b&&c==d){initChunkSeed(ix+x,iz+z);v=nextInt(2)==0?a:c;}else{if(a==b)v=a;if(c==d)v=c;}o[ix+iz*w]=v;}return o;} }

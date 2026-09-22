@@ -1,73 +1,86 @@
 OldGenerator
 ==
-Spigot plugin for adding Beta 1.7.3 generation to modern versions of
-Minecraft. This plugin can replace 
-[173generator](https://github.com/Barteks2x/173generator) for modern versions (please
-see the How to Use section for proper configuration).
 
+Spigot/Paper plugin for running historical Minecraft world-generation algorithms on modern servers.
 
-## Showcase
-### Seed `worstseedever`
+## Generators
 
-### Beta 1.7.3
-![Overworld Generation](./assests/AS4aeoK.png)
-![Nether Generation](./assests/7lOgLRC.png)
+| ID | Target |
+| --- | --- |
+| `b173` | Minecraft Beta 1.7.3 overworld |
+| `sb173` | Minecraft Beta 1.7.3 skylands |
+| `v125` | Minecraft 1.2.5 overworld |
+| `1.2.5` | Alias for `v125` |
 
-### OldGenerator on Minecraft 1.16.4
-![Overworld Generation](./assests/0ycd5K0.png)
-![Nether Generation](./assests/u5OTgPZ.png)
+The 1.2.5 port is a standalone implementation of the historical generator. It does not
+run an old Minecraft server jar.
 
-### Differences
-#### Overworld
-Block physics are not applied to gravel OR sand when placing. So, the dungeon sand will
-not immediately cave in upon logging in, but the dungeon is still there .
-Most chunks will look the exact same, but due to chunk generation order differences
-the populators might fire differently and you'll get different results (however the general
-terrain will remain the same).
+### Minecraft 1.2.5 port status
 
-#### Nether
-Fire, glowstone, and even lava placement (excluding the lava oceans) will generally not mirror Beta 1.7.3. However, the terrain
-will remain the same.
+The `mc-1.2.5-port` branch now contains the 1.2.5 terrain and population foundation:
 
-Why aren't fire/glowstone/lava correct? This is due to a technical bug in the old
-beta populator code: The chunk seed is not setup when populating chunks! So the 
-placement is entirely dependent on chunk generation order (and a few other really technical details), 
-which is completely different in modern Minecraft. 
+- 128-block historical world-height model (Y 0–127).
+- Source-faithful 1.2.5 Perlin/octave noise construction and Java-Random seeding.
+- 5x17x5 density field with the original 4x4x8 interpolation.
+- Historical sea level at Y=63 and the 1.2.5 biome-weighted density calculation.
+- 1.2.5 GenLayer chain, biome IDs, RiverMix and final Voronoi block-biome layer.
+- 1.2.5 caves and ravines.
+- Historical chunk population seed (`oddX`/`oddZ`) and decorator ordering.
+- Ores, sand/clay patches, lakes, dungeons, trees, flowers, grass, mushrooms,
+  reeds, pumpkins, cacti, liquid springs, and cold-biome ice/snow handling.
+- Deterministic 1.2.5-style mineshaft, village and stronghold start placement.
+- Modern Bukkit/Paper `ChunkGenerator.ChunkData` integration and a legacy
+  population hook for post-generation decoration.
 
+Structure **piece layouts are not yet byte-for-byte 1.2.5 ports**. The current
+structure bridge reproduces the legacy placement rules and deterministic locations,
+then uses compact modern Bukkit implementations for the generated pieces. Full
+component-level parity for mineshafts, villages, and strongholds remains the final
+structure-generation milestone.
 
-There's nothing I can do to match the old populator behavior, however I have modified the 
-populator code for nether to correctly setup a chunk seed per chunk - this means the results 
-should be consistent across world generations when using OldGenerator, but they still will not 
-match Vanilla Beta 1.7.3.
-
+The 1.2.5 generator is still **development/experimental** and should be validated
+against reference worlds before being treated as a finished parity implementation.
 
 ## How do I use?
-#### If you do NOT have a world management plugin
-Add this to your bukkit.yml
+
+Add the generator to your world configuration:
+
 ```yaml
 worlds:
-  worldname1:
-    generator: OldGenerator:b173
-  worldname2:
-    generator: OldGenerator:b173
+  oldworld:
+    generator: OldGenerator:v125
 ```
-This will setup worldname1 and worldname2 to run OldGenerator as their generator. For example,
-you can set worldname1 to `world` and worldname2 to `world_nether` to do exactly what you expect.
-`b173` can be replaced with `sb173` to get a [skylands](https://minecraft.gamepedia.com/Sky_dimension) world.
 
-#### If you have a world management plugin
-Follow the guide that world management plugin to setup custom generators. I don't
-use any world management plugins, so I can't help you!
+The `1.2.5` alias may also be used:
 
-## I want different old generators!
-If enough people request other old generators, I can add them to this plugin. 
+```yaml
+worlds:
+  oldworld:
+    generator: OldGenerator:1.2.5
+```
 
-## License
-All of the world generation code is directly copied from decompiled sources 
-of the minecraft server jar (specifically, the beta 1.7.3 dedicated server jar), 
-and then modified further. The original decompiled sources can be found here: 
-https://github.com/Bukkit/mc-dev
+Existing Beta 1.7.3 configurations remain supported:
 
-As such, the world generation code is copyrighted by Mojang AB.
+```yaml
+worlds:
+  beta:
+    generator: OldGenerator:b173
+  skylands:
+    generator: OldGenerator:sb173
+```
 
-Everything else is licensed under the MIT License, see the LICENSE.md file for license text.
+## Development
+
+Build with:
+
+```bash
+mvn -B -ntp clean verify
+```
+
+The GitHub Actions build runs the Maven verification build on Java 17.
+
+## Source and licensing
+
+The historical generator implementation targets the Minecraft 1.2.5 server
+generation source. The original Minecraft code is copyrighted by Mojang AB. The
+plugin's non-Minecraft portions remain under the MIT license in `LICENSE.md`.

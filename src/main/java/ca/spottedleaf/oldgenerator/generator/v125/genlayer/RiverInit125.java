@@ -1,0 +1,2 @@
+package ca.spottedleaf.oldgenerator.generator.v125.genlayer;
+public final class RiverInit125 extends GenLayer125 { public RiverInit125(final long s,final GenLayer125 p){super(s);parent=p;} @Override public int[] getInts(int x,int z,int w,int h){int[]p=parent.getInts(x,z,w,h),o=new int[w*h];for(int i=0;i<h;i++)for(int j=0;j<w;j++){initChunkSeed(j+x,i+z);o[j+i*w]=p[j+i*w]>0?nextInt(2)+2:0;}return o;} }
