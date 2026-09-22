@@ -15,4 +15,11 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: maven
-      - run: mvn -B -ntp clean verify
+      - name: Build plugin
+        run: mvn -B -ntp clean verify
+      - name: Upload plugin JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: OldGenerator-plugin
+          path: target/oldgenerator-*.jar
+          if-no-files-found: error
