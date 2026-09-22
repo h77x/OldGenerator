@@ -14,6 +14,7 @@ public final class World {
     public World(final long seed, final BlockAccess access, final V125BiomeSource source){
         this.seed=seed;this.access=access;this.manager=new WorldChunkManager(source,seed);
     }
+    public World(final BlockAccess access){ this.seed=0L; this.access=access; this.manager=null; }
     public long getSeed(){return seed;}
     public WorldChunkManager getWorldChunkManager(){return manager;}
     public int getBlockId(int x,int y,int z){
