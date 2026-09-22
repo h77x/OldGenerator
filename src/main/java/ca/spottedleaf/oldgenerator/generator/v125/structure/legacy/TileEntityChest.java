@@ -24,4 +24,5 @@ public final class TileEntityChest {
     public ItemStack getStackInSlot(final int slot) {
         return slot >= 0 && slot < items.length ? items[slot] : null;
     }
+    ItemStack[] getItems() { return items; }
 }
