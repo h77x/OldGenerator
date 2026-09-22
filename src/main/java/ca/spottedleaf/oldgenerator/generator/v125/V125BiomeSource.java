@@ -130,6 +130,7 @@ public final class V125BiomeSource {
             biome=new Smooth125(1000L,biome);
             this.biomeLayer=new RiverMix125(100L,biome,river);
             this.blockBiomeLayer=new VoronoiZoom125(10L,this.biomeLayer);
+            this.biomeLayer.initWorldGenSeed(seed);
             this.blockBiomeLayer.initWorldGenSeed(seed);
         }
     }
