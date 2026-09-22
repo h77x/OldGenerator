@@ -3,7 +3,8 @@ package ca.spottedleaf.oldgenerator.generator.v125.structure.legacy;
 public final class Item {
     public static final Item[] itemsList = new Item[4096];
     public final int itemID;
-    private Item(final int id) { this.itemID=id; if(id>=0&&id<itemsList.length)itemsList[id]=this; }
+    public final int shiftedIndex;
+    private Item(final int id) { this.itemID=id; this.shiftedIndex=id; if(id>=0&&id<itemsList.length)itemsList[id]=this; }
     private static Item register(final int id){return new Item(id);}
 
     public static final Item coal=register(263);
