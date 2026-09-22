@@ -35,6 +35,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
     private static final int WORLD_HEIGHT = 128;
 
     private final V125BiomeSource biomeSource = new V125BiomeSource();
+    private final V125StructureGenerator structureGenerator = new V125StructureGenerator();
     private final ThreadLocal<NoiseState> noiseStates = new ThreadLocal<>();
 
     private static final class NoiseState {
@@ -377,7 +378,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         random.setSeed((long) chunkX * oddX + (long) chunkZ * oddZ ^ seed);
 
         final V125StructureGenerator.Result structures =
-                new V125StructureGenerator().generate(seed, chunkX, chunkZ, access, this.biomeSource, random);
+                this.structureGenerator.generate(seed, chunkX, chunkZ, access, this.biomeSource, random);
         final int biomeId = this.biomeSource
                 .getBlockBiomeIds(seed, blockX + 16, blockZ + 16, 1, 1)[0];
         final boolean villageStart = structures.hasVillage();
