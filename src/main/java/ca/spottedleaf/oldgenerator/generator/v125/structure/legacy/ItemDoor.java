@@ -7,6 +7,6 @@ public final class ItemDoor {
     }
 
     public static void placeDoorBlock(World world, int x, int y, int z, EnumDoor door) {
-        placeDoorBlock(world, x, y, z, 0, door == EnumDoor.IRON ? Block.doorSteel : Block.doorWood);
+        placeDoorBlock(world, x, y, z, 0, door == EnumDoor.IRON_DOOR ? Block.doorSteel : Block.doorWood);
     }
 }
