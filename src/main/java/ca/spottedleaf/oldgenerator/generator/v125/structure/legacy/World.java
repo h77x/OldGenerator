@@ -213,6 +213,12 @@ public final class World {
         if (id == Block.tallGrass.blockID) {
             return (meta & 1) == 1 ? org.bukkit.Material.FERN : org.bukkit.Material.SHORT_GRASS;
         }
+        if (id == Block.torchWood.blockID) {
+            return meta >= 1 && meta <= 4 ? org.bukkit.Material.WALL_TORCH : org.bukkit.Material.TORCH;
+        }
+        if (id == Block.chest.blockID) return org.bukkit.Material.CHEST;
+        if (id == Block.button.blockID) return org.bukkit.Material.STONE_BUTTON;
+        if (id == Block.pressurePlatePlanks.blockID) return org.bukkit.Material.OAK_PRESSURE_PLATE;
         if (id == Block.cloth.blockID) {
             final org.bukkit.Material[] wool = {
                 org.bukkit.Material.WHITE_WOOL, org.bukkit.Material.ORANGE_WOOL, org.bukkit.Material.MAGENTA_WOOL,
@@ -294,6 +300,30 @@ public final class World {
                 vine.setFace(BlockFace.EAST, (meta & 2) != 0);
                 vine.setFace(BlockFace.SOUTH, (meta & 4) != 0);
                 vine.setFace(BlockFace.WEST, (meta & 8) != 0);
+            } else if (id == Block.torchWood.blockID && data instanceof Directional directional
+                    && material == org.bukkit.Material.WALL_TORCH) {
+                directional.setFacing(switch (meta & 7) {
+                    case 1 -> BlockFace.WEST;
+                    case 2 -> BlockFace.EAST;
+                    case 3 -> BlockFace.NORTH;
+                    default -> BlockFace.SOUTH;
+                });
+            } else if (id == Block.chest.blockID && data instanceof org.bukkit.block.data.type.Chest chest) {
+                chest.setFacing(switch (meta & 7) {
+                    case 2 -> BlockFace.NORTH;
+                    case 3 -> BlockFace.SOUTH;
+                    case 4 -> BlockFace.WEST;
+                    case 5 -> BlockFace.EAST;
+                    default -> BlockFace.NORTH;
+                });
+            } else if (id == Block.button.blockID && data instanceof Directional directional) {
+                directional.setFacing(switch (meta & 7) {
+                    case 1 -> BlockFace.WEST;
+                    case 2 -> BlockFace.EAST;
+                    case 3 -> BlockFace.NORTH;
+                    case 4 -> BlockFace.SOUTH;
+                    default -> BlockFace.NORTH;
+                });
             } else if (id == Block.pumpkin.blockID && data instanceof Directional directional) {
                 directional.setFacing(switch (meta & 3) {
                     case 0 -> BlockFace.SOUTH;
