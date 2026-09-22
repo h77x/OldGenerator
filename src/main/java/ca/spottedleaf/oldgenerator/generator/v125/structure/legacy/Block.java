@@ -34,6 +34,7 @@ public final class Block {
     public static final Block cobblestone = b(4, Material.COBBLESTONE);
     public static final Block planks = b(5, Material.OAK_PLANKS);
     public static final Block sapling = b(6, Material.OAK_SAPLING);
+    public static final Block tallGrass = b(31, Material.SHORT_GRASS);
     public static final Block bedrock = b(7, Material.BEDROCK);
     public static final Block waterMoving = b(8, Material.WATER);
     public static final Block waterStill = b(9, Material.WATER);
