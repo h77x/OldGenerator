@@ -5,6 +5,7 @@ import org.bukkit.block.Biome;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 public final class V125BiomeSource {
     private final ThreadLocal<State> states = new ThreadLocal<>();
@@ -25,6 +26,55 @@ public final class V125BiomeSource {
             this.states.set(state);
         }
         return state.blockBiomeLayer.getInts(x, z, width, height);
+    }
+
+    public boolean areBiomesViable(final long seed, final int x, final int z, final int range, final int[] allowed) {
+        final int minX = x - range >> 2;
+        final int minZ = z - range >> 2;
+        final int maxX = x + range >> 2;
+        final int maxZ = z + range >> 2;
+        final int width = maxX - minX + 1;
+        final int height = maxZ - minZ + 1;
+        final int[] values = this.getBiomeIds(seed, minX, minZ, width, height);
+        outer:
+        for (final int value : values) {
+            for (final int candidate : allowed) {
+                if (value == candidate) continue outer;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    public long[] findBiomePosition(final long seed, final int x, final int z, final int range,
+                                    final int[] allowed, final Random random) {
+        final int minX = x - range >> 2;
+        final int minZ = z - range >> 2;
+        final int maxX = x + range >> 2;
+        final int maxZ = z + range >> 2;
+        final int width = maxX - minX + 1;
+        final int height = maxZ - minZ + 1;
+        final int[] values = this.getBiomeIds(seed, minX, minZ, width, height);
+        long resultX = Long.MIN_VALUE;
+        long resultZ = Long.MIN_VALUE;
+        int matches = 0;
+        for (int i = 0; i < values.length; ++i) {
+            boolean allowedBiome = false;
+            for (final int candidate : allowed) {
+                if (values[i] == candidate) {
+                    allowedBiome = true;
+                    break;
+                }
+            }
+            if (allowedBiome && (resultX == Long.MIN_VALUE || random.nextInt(matches + 1) == 0)) {
+                resultX = (long)(minX + i % width) << 2;
+                resultZ = (long)(minZ + i / width) << 2;
+                ++matches;
+            } else if (allowedBiome) {
+                ++matches;
+            }
+        }
+        return resultX == Long.MIN_VALUE ? null : new long[]{resultX, resultZ};
     }
 
     public V125BiomeData getBiomeData(final int id) {
