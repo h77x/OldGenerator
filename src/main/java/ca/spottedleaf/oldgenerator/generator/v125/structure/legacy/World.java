@@ -345,8 +345,37 @@ public final class World {
             return null;
         }
     }
-    public int getTopSolidOrLiquidBlock(int x,int z){return access.getHighestBlockYAt(x,z);}
-    public int getHeightValue(int x,int z){return access.getHighestBlockYAt(x,z);}
+    public int getPrecipitationHeight(final int x, final int z) {
+        for (int y = access.getMaxHeight(); y > 0; --y) {
+            final int id = getBlockId(x, y, z);
+            final Material material = id == 0 || Block.blocksList[id] == null
+                    ? new Material(false, false)
+                    : Block.blocksList[id].blockMaterial;
+            if (!material.blocksMovement() && !material.isLiquid()) continue;
+            return y + 1;
+        }
+        return 0;
+    }
+
+    public int getTopSolidOrLiquidBlock(final int x, final int z) {
+        for (int y = access.getMaxHeight(); y > 0; --y) {
+            final int id = getBlockId(x, y, z);
+            final Block block = id >= 0 && id < Block.blocksList.length ? Block.blocksList[id] : null;
+            if (block != null && block.blockMaterial.blocksMovement() && block != Block.leaves) {
+                return y + 1;
+            }
+        }
+        return -1;
+    }
+
+    public int getHeightValue(final int x, final int z) {
+        for (int y = access.getMaxHeight(); y > 0; --y) {
+            if (getBlockId(x, y - 1, z) != 0) {
+                return y;
+            }
+        }
+        return 0;
+    }
     public void spawnEntityInWorld(EntityVillager v){}
     public boolean isBlockNormalCube(int x,int y,int z){return Block.opaqueCubeLookup[getBlockId(x,y,z)];}
     public int getSavedLightValue(EnumSkyBlock skyBlock, int x, int y, int z){ return skyBlock == EnumSkyBlock.Sky ? 15 : 0; }
@@ -354,9 +383,37 @@ public final class World {
         if (manager == null) return BiomeGenBase.plains;
         return manager.getBiomeGenAt(x, z);
     }
-    public boolean isBlockFreezable(int x, int y, int z){
-        final Material m = getBlockMaterial(x,y,z);
-        return m == Material.water;
+    public boolean isBlockFreezable(final int x, final int y, final int z) {
+        final BiomeGenBase biome = getBiomeGenForCoords(x, z);
+        final int id = getBlockId(x, y, z);
+        return biome != null
+                && biome.biomeID >= 0
+                && biomeTemperature(biome.biomeID) <= 0.15F
+                && (id == Block.waterStill.blockID || id == Block.waterMoving.blockID);
+    }
+
+    private static float biomeTemperature(final int biomeId) {
+        switch (biomeId) {
+            case 2:
+            case 17: return 2.0F;
+            case 3:
+            case 20: return 0.2F;
+            case 4:
+            case 18: return 0.7F;
+            case 5:
+            case 19: return 0.05F;
+            case 6: return 0.8F;
+            case 10:
+            case 11:
+            case 12:
+            case 13: return 0.0F;
+            case 14:
+            case 15: return 0.9F;
+            case 16: return 0.8F;
+            case 21:
+            case 22: return 1.2F;
+            default: return 0.8F;
+        }
     }
     public void notifyBlocksOfNeighborChange(int x,int y,int z,int id){}
     public static final class WorldProvider { public int getAverageGroundLevel(){return 64;} }
