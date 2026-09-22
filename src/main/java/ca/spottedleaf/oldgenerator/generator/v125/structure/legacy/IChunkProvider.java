@@ -1,0 +1,1 @@
+package ca.spottedleaf.oldgenerator.generator.v125.structure.legacy; public interface IChunkProvider {}
