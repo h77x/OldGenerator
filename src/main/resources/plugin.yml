@@ -4,5 +4,5 @@ name: OldGenerator
 load: STARTUP
 api-version: "1.21"
 authors: [Spottedleaf]
-description: Provides historical Beta 1.7.3 and Minecraft 1.2.5 world generation for modern servers.
+description: A standalone Minecraft 1.2.5 world generator for modern Paper servers.
 folia-supported: true
