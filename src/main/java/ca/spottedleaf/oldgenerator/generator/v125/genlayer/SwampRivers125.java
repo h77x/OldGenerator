@@ -1,0 +1,2 @@
+package ca.spottedleaf.oldgenerator.generator.v125.genlayer;
+public final class SwampRivers125 extends GenLayer125 { public SwampRivers125(final long s,final GenLayer125 p){super(s);parent=p;} @Override public int[] getInts(int x,int z,int w,int h){int pw=w+2;int[]p=parent.getInts(x-1,z-1,pw,h+2),o=new int[w*h];for(int iz=0;iz<h;iz++)for(int ix=0;ix<w;ix++){initChunkSeed(ix+x,iz+z);int v=p[ix+1+(iz+1)*pw];o[ix+iz*w]=(v==6&&nextInt(6)==0)||( (v==21||v==22)&&nextInt(8)==0 )?7:v;}return o;} }
