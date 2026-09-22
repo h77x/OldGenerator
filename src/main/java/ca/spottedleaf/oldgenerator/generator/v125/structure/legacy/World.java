@@ -42,6 +42,17 @@ public final class World {
         final org.bukkit.Material m=access.getType(x,y,z);
         if (m == org.bukkit.Material.WATER) return Block.waterStill.blockID;
         if (m == org.bukkit.Material.LAVA) return Block.lavaStill.blockID;
+        if (m == org.bukkit.Material.OAK_LOG || m == org.bukkit.Material.SPRUCE_LOG
+                || m == org.bukkit.Material.BIRCH_LOG || m == org.bukkit.Material.JUNGLE_LOG
+                || m == org.bukkit.Material.OAK_WOOD || m == org.bukkit.Material.SPRUCE_WOOD
+                || m == org.bukkit.Material.BIRCH_WOOD || m == org.bukkit.Material.JUNGLE_WOOD) return Block.wood.blockID;
+        if (m == org.bukkit.Material.OAK_LEAVES || m == org.bukkit.Material.SPRUCE_LEAVES
+                || m == org.bukkit.Material.BIRCH_LEAVES || m == org.bukkit.Material.JUNGLE_LEAVES) return Block.leaves.blockID;
+        if (m == org.bukkit.Material.OAK_PLANKS || m == org.bukkit.Material.SPRUCE_PLANKS
+                || m == org.bukkit.Material.BIRCH_PLANKS || m == org.bukkit.Material.JUNGLE_PLANKS) return Block.planks.blockID;
+        if (m == org.bukkit.Material.OAK_SAPLING || m == org.bukkit.Material.SPRUCE_SAPLING
+                || m == org.bukkit.Material.BIRCH_SAPLING || m == org.bukkit.Material.JUNGLE_SAPLING) return Block.sapling.blockID;
+        if (m == org.bukkit.Material.SHORT_GRASS || m == org.bukkit.Material.FERN) return Block.tallGrass.blockID;
         for (Block b : Block.blocksList) if (b != null && b.material == m) return b.blockID;
         return m == org.bukkit.Material.AIR ? 0 : 1;
     }
