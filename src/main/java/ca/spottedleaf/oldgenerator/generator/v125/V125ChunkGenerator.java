@@ -6,6 +6,9 @@ import ca.spottedleaf.oldgenerator.generator.v125.map.V125Caves;
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Ravine;
 import ca.spottedleaf.oldgenerator.generator.v125.populate.*;
 import ca.spottedleaf.oldgenerator.generator.v125.structure.V125StructureGenerator;
+import org.bukkit.generator.BlockPopulator;
+import java.util.Collections;
+import java.util.List;
 import ca.spottedleaf.oldgenerator.util.BlockConstants;
 import ca.spottedleaf.oldgenerator.world.BlockAccess;
 import ca.spottedleaf.oldgenerator.world.WorldBlockAccess;
@@ -160,7 +163,6 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         this.applySurface(data, biomes, seed, chunkX, chunkZ);
         new V125Caves(seed).generate(chunkX, chunkZ, data, this.biomeSource);
         new V125Ravine(seed).generate(chunkX, chunkZ, data, this.biomeSource);
-        new V125StructureGenerator().generate(seed, chunkX, chunkZ, data, this.biomeSource);
         return data;
     }
 
@@ -358,20 +360,23 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         return (x * 5 + z) * 17 + y;
     }
 
-    public void runPopulators(final World world, final Chunk chunk) {
-        final int chunkX = chunk.getX();
-        final int chunkZ = chunk.getZ();
+    @Override
+    public List<BlockPopulator> getDefaultPopulators(final World world) {
+        return Collections.singletonList(new V125BlockPopulator(this));
+    }
+
+    public void runPopulators(final long seed, final int chunkX, final int chunkZ, final BlockAccess access) {
         final int blockX = chunkX * 16;
         final int blockZ = chunkZ * 16;
 
-        final Random random = new Random(world.getSeed());
+        final Random random = new Random(seed);
         final long oddX = random.nextLong() / 2L * 2L + 1L;
         final long oddZ = random.nextLong() / 2L * 2L + 1L;
         random.setSeed((long) chunkX * oddX + (long) chunkZ * oddZ ^ world.getSeed());
 
-        final BlockAccess access = new WorldBlockAccess(world, 0, 127);
+        new V125StructureGenerator().generate(seed, chunkX, chunkZ, access, this.biomeSource);
         final int biomeId = this.biomeSource
-                .getBlockBiomeIds(world.getSeed(), blockX + 16, blockZ + 16, 1, 1)[0];
+                .getBlockBiomeIds(seed, blockX + 16, blockZ + 16, 1, 1)[0];
         final boolean villageStart =
                 new V125StructureGenerator().hasVillageStart(world.getSeed(), chunkX, chunkZ, this.biomeSource);
 
@@ -403,7 +408,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         }
 
         decorateBiome(access, random, biomeId, blockX, blockZ);
-        freezeAndSnow(world, access, biomeId, blockX, blockZ);
+        freezeAndSnow(access, biomeId, blockX, blockZ);
     }
 
     private void generateOres(final BlockAccess world, final Random random,
@@ -702,12 +707,12 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         }
     }
 
-    private static void freezeAndSnow(final World world, final BlockAccess access,
+    private static void freezeAndSnow(final BlockAccess access,
                                       final int biomeId, final int baseX, final int baseZ) {
         final boolean cold = isCold(biomeId);
         for (int x = baseX + 8; x < baseX + 24; ++x) {
             for (int z = baseZ + 8; z < baseZ + 24; ++z) {
-                final int top = Math.min(127, world.getHighestBlockYAt(x, z));
+                final int top = Math.min(127, access.getHighestBlockYAt(x, z));
                 if (top <= 0 || top > 127) continue;
 
                 final Material precipitationBlock = access.getType(x, top - 1, z);
