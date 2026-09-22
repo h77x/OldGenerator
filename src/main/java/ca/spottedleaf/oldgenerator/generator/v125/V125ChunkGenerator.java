@@ -4,6 +4,7 @@ import ca.spottedleaf.oldgenerator.generator.b173.populator.*;
 import ca.spottedleaf.oldgenerator.generator.v125.noise.NoiseGeneratorOctaves125;
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Caves;
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Ravine;
+import ca.spottedleaf.oldgenerator.generator.v125.populate.*;
 import ca.spottedleaf.oldgenerator.generator.v125.structure.V125StructureGenerator;
 import ca.spottedleaf.oldgenerator.util.BlockConstants;
 import ca.spottedleaf.oldgenerator.world.BlockAccess;
