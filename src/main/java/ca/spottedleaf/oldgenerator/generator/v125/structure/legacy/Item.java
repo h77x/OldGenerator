@@ -35,6 +35,7 @@ public final class Item {
     public static final Item silk=register(287);
     public static final Item bucketEmpty=register(325);
     public static final Item record13=register(2256);
+    public static final Item recordCat=register(2257);
 
     private Item(){this(-1);}
     public int getItemStackLimit(){return 64;}
