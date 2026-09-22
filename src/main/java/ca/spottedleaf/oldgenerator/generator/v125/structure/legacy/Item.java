@@ -29,6 +29,12 @@ public final class Item {
     public static final Item plateSteel=register(307);
     public static final Item legsSteel=register(308);
     public static final Item bootsSteel=register(309);
+    public static final Item saddle=register(329);
+    public static final Item wheat=register(296);
+    public static final Item gunpowder=register(289);
+    public static final Item silk=register(287);
+    public static final Item bucketEmpty=register(325);
+    public static final Item record13=register(2256);
 
     private Item(){this(-1);}
     public int getItemStackLimit(){return 64;}
