@@ -8,7 +8,7 @@ import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Door;
-import org.bukkit.block.data.type.Rail;
+import org.bukkit.block.data.Rail;
 import org.bukkit.block.data.type.Stairs;
 import org.bukkit.block.data.type.Gate;
 
