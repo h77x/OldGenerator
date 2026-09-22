@@ -11,6 +11,11 @@ import org.bukkit.block.data.type.Door;
 import org.bukkit.block.data.Rail;
 import org.bukkit.block.data.type.Stairs;
 import org.bukkit.block.data.type.Gate;
+import org.bukkit.block.Chest;
+import org.bukkit.block.CreatureSpawner;
+import org.bukkit.entity.EntityType;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class World {
     public final WorldProvider worldProvider=new WorldProvider();
@@ -19,6 +24,8 @@ public final class World {
     private final BlockAccess access;
     private final long seed;
     private final WorldChunkManager manager;
+    private final Map<Long, TileEntityChest> chests = new HashMap<>();
+    private final Map<Long, TileEntityMobSpawner> spawners = new HashMap<>();
 
     public World(final long seed, final BlockAccess access, final V125BiomeSource source){
         this.seed=seed;this.access=access;this.manager=new WorldChunkManager(source,seed);
@@ -53,13 +60,106 @@ public final class World {
     public void setBlockAndMetadataWithNotify(int x,int y,int z,int id,int meta){setInternal(x,y,z,id,meta);}
     public void setBlockWithNotify(int x,int y,int z,int id){setInternal(x,y,z,id,0);}
     public void setBlock(int x,int y,int z,int id){setInternal(x,y,z,id,0);}
-    public void setBlockTileEntity(int x,int y,int z,Object tile){}
-    public Object getBlockTileEntity(int x,int y,int z){
-        int id=getBlockId(x,y,z);
-        if(id==Block.chest.blockID)return new TileEntityChest();
-        if(id==Block.mobSpawner.blockID)return new TileEntityMobSpawner();
+    public void setBlockTileEntity(final int x, final int y, final int z, final Object tile) {
+        if (tile instanceof TileEntityChest chest) {
+            syncChest(x, y, z, chest.getItems());
+        } else if (tile instanceof TileEntityMobSpawner spawner) {
+            syncSpawner(x, y, z, spawner.getMobID());
+        }
+    }
+
+    public Object getBlockTileEntity(final int x, final int y, final int z) {
+        final int id = getBlockId(x, y, z);
+        final long key = blockKey(x, y, z);
+        if (id == Block.chest.blockID) {
+            return chests.computeIfAbsent(key, ignored -> new TileEntityChest(this, x, y, z));
+        }
+        if (id == Block.mobSpawner.blockID) {
+            return spawners.computeIfAbsent(key, ignored -> new TileEntityMobSpawner(this, x, y, z));
+        }
         return null;
     }
+
+    private static long blockKey(final int x, final int y, final int z) {
+        return (((long)x & 0x3FFFFFFL) << 38)
+                | (((long)z & 0x3FFFFFFL) << 12)
+                | (y & 0xFFFL);
+    }
+
+    void syncChest(final int x, final int y, final int z, final ItemStack[] items) {
+        final org.bukkit.block.BlockState state = access.getBlockState(x, y, z);
+        if (!(state instanceof Chest chest)) return;
+        final org.bukkit.inventory.Inventory inventory = chest.getBlockInventory();
+        inventory.clear();
+        for (int slot = 0; slot < items.length; ++slot) {
+            final org.bukkit.inventory.ItemStack item = toBukkitItem(items[slot]);
+            if (item != null) inventory.setItem(slot, item);
+        }
+        state.update(false, false);
+    }
+
+    void syncSpawner(final int x, final int y, final int z, final String mobId) {
+        final org.bukkit.block.BlockState state = access.getBlockState(x, y, z);
+        if (!(state instanceof CreatureSpawner spawner)) return;
+        final EntityType type = EntityType.fromName(mobId);
+        if (type != null) {
+            spawner.setSpawnedType(type);
+            state.update(false, false);
+        }
+    }
+
+    private static org.bukkit.inventory.ItemStack toBukkitItem(final ItemStack item) {
+        if (item == null) return null;
+        final org.bukkit.Material material;
+        switch (item.itemID) {
+            case 256: material = org.bukkit.Material.IRON_SHOVEL; break;
+            case 257: material = org.bukkit.Material.IRON_PICKAXE; break;
+            case 258: material = org.bukkit.Material.IRON_AXE; break;
+            case 259: material = org.bukkit.Material.FLINT_AND_STEEL; break;
+            case 260: material = org.bukkit.Material.APPLE; break;
+            case 261: material = org.bukkit.Material.BOW; break;
+            case 262: material = org.bukkit.Material.ARROW; break;
+            case 263: material = org.bukkit.Material.COAL; break;
+            case 264: material = org.bukkit.Material.DIAMOND; break;
+            case 265: material = org.bukkit.Material.IRON_INGOT; break;
+            case 266: material = org.bukkit.Material.GOLD_INGOT; break;
+            case 267: material = org.bukkit.Material.IRON_SWORD; break;
+            case 268: material = org.bukkit.Material.STONE_SWORD; break;
+            case 269: material = org.bukkit.Material.WOODEN_SHOVEL; break;
+            case 270: material = org.bukkit.Material.WOODEN_PICKAXE; break;
+            case 271: material = org.bukkit.Material.WOODEN_AXE; break;
+            case 272: material = org.bukkit.Material.STONE_SWORD; break;
+            case 273: material = org.bukkit.Material.STONE_SHOVEL; break;
+            case 274: material = org.bukkit.Material.STONE_PICKAXE; break;
+            case 275: material = org.bukkit.Material.STONE_AXE; break;
+            case 280: material = org.bukkit.Material.STICK; break;
+            case 287: material = org.bukkit.Material.STRING; break;
+            case 289: material = org.bukkit.Material.GUNPOWDER; break;
+            case 296: material = org.bukkit.Material.WHEAT; break;
+            case 297: material = org.bukkit.Material.BREAD; break;
+            case 306: material = org.bukkit.Material.IRON_HELMET; break;
+            case 307: material = org.bukkit.Material.IRON_CHESTPLATE; break;
+            case 308: material = org.bukkit.Material.IRON_LEGGINGS; break;
+            case 309: material = org.bukkit.Material.IRON_BOOTS; break;
+            case 322: material = org.bukkit.Material.GOLDEN_APPLE; break;
+            case 325: material = org.bukkit.Material.BUCKET; break;
+            case 329: material = org.bukkit.Material.SADDLE; break;
+            case 331: material = org.bukkit.Material.REDSTONE; break;
+            case 339: material = org.bukkit.Material.PAPER; break;
+            case 340: material = org.bukkit.Material.BOOK; break;
+            case 345: material = org.bukkit.Material.COMPASS; break;
+            case 358: material = org.bukkit.Material.FILLED_MAP; break;
+            case 361: material = org.bukkit.Material.PUMPKIN_SEEDS; break;
+            case 362: material = org.bukkit.Material.MELON_SEEDS; break;
+            case 368: material = org.bukkit.Material.ENDER_PEARL; break;
+            case 351: material = item.itemDamage == 3 ? org.bukkit.Material.COCOA_BEANS : org.bukkit.Material.INK_SAC; break;
+            case 2256: material = org.bukkit.Material.MUSIC_DISC_13; break;
+            case 2257: material = org.bukkit.Material.MUSIC_DISC_CAT; break;
+            default: return null;
+        }
+        return new org.bukkit.inventory.ItemStack(material, Math.max(1, item.stackSize));
+    }
+
     private void setInternal(final int x, final int y, final int z, final int id, final int meta) {
         if (y < access.getMinHeight() || y > access.getMaxHeight()) return;
         final Block block = (id >= 0 && id < Block.blocksList.length) ? Block.blocksList[id] : null;
