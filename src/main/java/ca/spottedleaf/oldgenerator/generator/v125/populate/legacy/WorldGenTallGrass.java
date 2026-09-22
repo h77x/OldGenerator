@@ -38,7 +38,7 @@ public class WorldGenTallGrass extends WorldGenerator
             int var9 = par4 + par2Random.nextInt(4) - par2Random.nextInt(4);
             int var10 = par5 + par2Random.nextInt(8) - par2Random.nextInt(8);
 
-            if (par1World.isAirBlock(var8, var9, var10) && ((BlockFlower)Block.blocksList[this.tallGrassID]).canBlockStay(par1World, var8, var9, var10))
+            if (par1World.isAirBlock(var8, var9, var10) && Block.blocksList[this.tallGrassID].canBlockStay(par1World, var8, var9, var10))
             {
                 par1World.setBlockAndMetadata(var8, var9, var10, this.tallGrassID, this.tallGrassMetadata);
             }
