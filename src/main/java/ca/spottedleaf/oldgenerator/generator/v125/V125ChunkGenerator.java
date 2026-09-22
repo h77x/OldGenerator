@@ -2,7 +2,6 @@ package ca.spottedleaf.oldgenerator.generator.v125;
 
 import ca.spottedleaf.oldgenerator.generator.b173.populator.*;
 import ca.spottedleaf.oldgenerator.generator.v125.noise.NoiseGeneratorOctaves125;
-import ca.spottedleaf.oldgenerator.generator.v125.noise.NoiseGenerator3_125;
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Caves;
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Ravine;
 import ca.spottedleaf.oldgenerator.util.BlockConstants;
@@ -26,7 +25,7 @@ import java.util.Random;
  */
 public final class V125ChunkGenerator extends ChunkGenerator {
     private static final int SEA_LEVEL = 63;
-    private static final int WORLD_HEIGHT = 256;
+    private static final int WORLD_HEIGHT = 128;
 
     private final V125BiomeSource biomeSource = new V125BiomeSource();
     private final ThreadLocal<NoiseState> noiseStates = new ThreadLocal<>();
@@ -272,128 +271,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         return out;
     }
 
-    public void runPopulators(final World world, final Chunk chunk) {
-        final int chunkX=chunk.getX();
-        final int chunkZ=chunk.getZ();
-        final int worldX=chunkX*16;
-        final int worldZ=chunkZ*16;
-        final Random random=new Random();
-        random.setSeed(world.getSeed());
-        final long oddX=random.nextLong()/2L*2L+1L;
-        final long oddZ=random.nextLong()/2L*2L+1L;
-        random.setSeed((long)chunkX*oddX+(long)chunkZ*oddZ ^ world.getSeed());
-
-        final BlockAccess access=new WorldBlockAccess(world,0,255);
-        final int[] ids=this.biomeSource.getBiomeIds(world.getSeed(),worldX+8,worldZ+8,1,1);
-        final int biomeId=ids[0];
-
-        // 1.2.5 ordering: lakes, dungeons, biome decoration, then freeze/snow.
-        if (random.nextInt(4)==0) {
-            int x=worldX+random.nextInt(16)+8;
-            int y=random.nextInt(256);
-            int z=worldZ+random.nextInt(16)+8;
-            new WorldGenLakes173(BlockConstants.SOURCE_WATER).populate(access,random,x,y,z);
-        }
-        if (random.nextInt(8)==0) {
-            int x=worldX+random.nextInt(16)+8;
-            int y=random.nextInt(random.nextInt(248)+8);
-            int z=worldZ+random.nextInt(16)+8;
-            if(y<63 || random.nextInt(10)==0) new WorldGenLakes173(BlockConstants.SOURCE_LAVA).populate(access,random,x,y,z);
-        }
-        for(int i=0;i<8;i++){
-            int x=worldX+random.nextInt(16)+8;
-            int y=random.nextInt(256);
-            int z=worldZ+random.nextInt(16)+8;
-            new WorldGenDungeons173().populate(access,random,x,y,z);
-        }
-
-        generateOres(access,random,worldX,worldZ);
-        decorateBiome(access,random,world,biomeId,worldX,worldZ);
-        freezeAndSnow(world,access,random,worldX,worldZ);
-    }
-
-    private void generateOres(final BlockAccess world, final Random random, final int baseX, final int baseZ) {
-        for(int i=0;i<20;i++) ore(world,random,new WorldGenMinable173(BlockConstants.DIRT,32),baseX,baseZ,0,256);
-        for(int i=0;i<10;i++) ore(world,random,new WorldGenMinable173(BlockConstants.GRAVEL,32),baseX,baseZ,0,256);
-        for(int i=0;i<20;i++) ore(world,random,new WorldGenMinable173(BlockConstants.COAL_ORE,16),baseX,baseZ,0,128);
-        for(int i=0;i<20;i++) ore(world,random,new WorldGenMinable173(BlockConstants.IRON_ORE,8),baseX,baseZ,0,64);
-        for(int i=0;i<2;i++) ore(world,random,new WorldGenMinable173(BlockConstants.GOLD_ORE,8),baseX,baseZ,0,32);
-        for(int i=0;i<8;i++) ore(world,random,new WorldGenMinable173(BlockConstants.REDSTONE_ORE,7),baseX,baseZ,0,16);
-        for(int i=0;i<1;i++) ore(world,random,new WorldGenMinable173(BlockConstants.DIAMOND_ORE,7),baseX,baseZ,0,16);
-        for(int i=0;i<1;i++) {
-            int x=baseX+random.nextInt(16), z=baseZ+random.nextInt(16);
-            int y=random.nextInt(16)+random.nextInt(16);
-            new WorldGenMinable173(BlockConstants.LAPIS_ORE,6).populate(world,random,x,y,z);
-        }
-    }
-
-    private void ore(BlockAccess world,Random random,WorldGenMinable173 generator,int x,int z,int min,int max){
-        generator.populate(world,random,x+random.nextInt(16),min+random.nextInt(max-min),z+random.nextInt(16));
-    }
-
-    private void decorateBiome(final BlockAccess access,final Random random,final World world,final int id,final int baseX,final int baseZ) {
-        int trees=0, flowers=2, grass=1, dead=0, mushrooms=0, reeds=0, cactus=0;
-        switch(id){
-            case 4: trees=10; break;
-            case 18: trees=10; break;
-            case 5: case 19: trees=10; grass=1; break;
-            case 21: trees=50; grass=25; reeds=10; break;
-            case 22: trees=50; grass=25; reeds=10; break;
-            case 2: case 17: flowers=0; grass=0; dead=10; cactus=10; break;
-            case 6: trees=0; flowers=1; grass=5; mushrooms=1; reeds=10; break;
-            case 12: case 13: flowers=0; grass=0; break;
-            case 14: case 15: trees=0; flowers=0; grass=0; mushrooms=1; break;
-            case 1: trees=0; flowers=2; grass=10; break;
-        }
-
-        int treeAttempts=trees+(random.nextInt(10)==0?1:0);
-        for(int i=0;i<treeAttempts;i++){
-            int x=baseX+random.nextInt(16)+8,z=baseZ+random.nextInt(16)+8;
-            new WorldGenTrees173().populate(access,random,x,world.getHighestBlockYAt(x,z),z);
-        }
-        for(int i=0;i<flowers;i++){
-            int x=baseX+random.nextInt(16)+8,y=random.nextInt(256),z=baseZ+random.nextInt(16)+8;
-            new WorldGenFlowers173(BlockConstants.DANDELION).populate(access,random,x,y,z);
-            if(random.nextInt(4)==0)new WorldGenFlowers173(BlockConstants.POPPY).populate(access,random,x,y,z);
-        }
-        for(int i=0;i<grass;i++){
-            int x=baseX+random.nextInt(16)+8,y=random.nextInt(256),z=baseZ+random.nextInt(16)+8;
-            new WorldGenGrass173(BlockConstants.SHORT_GRASS).populate(access,random,x,y,z);
-        }
-        for(int i=0;i<dead;i++){
-            int x=baseX+random.nextInt(16)+8,y=random.nextInt(256),z=baseZ+random.nextInt(16)+8;
-            new WorldGenDeadBush173(BlockConstants.DEAD_BUSH).populate(access,random,x,y,z);
-        }
-        for(int i=0;i<mushrooms;i++){
-            if(random.nextInt(4)==0)new WorldGenFlowers173(BlockConstants.BROWN_MUSHROOM).populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(256),baseZ+random.nextInt(16)+8);
-            if(random.nextInt(8)==0)new WorldGenFlowers173(BlockConstants.RED_MUSHROOM).populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(256),baseZ+random.nextInt(16)+8);
-        }
-        for(int i=0;i<reeds+10;i++){
-            new WorldGenReed173().populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(256),baseZ+random.nextInt(16)+8);
-        }
-        if(random.nextInt(32)==0)new WorldGenPumpkin173().populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(256),baseZ+random.nextInt(16)+8);
-        for(int i=0;i<cactus;i++)new WorldGenCactus173().populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(256),baseZ+random.nextInt(16)+8);
-        for(int i=0;i<50;i++)new WorldGenLiquids173(BlockConstants.SOURCE_WATER).populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(random.nextInt(248)+8),baseZ+random.nextInt(16)+8);
-        for(int i=0;i<20;i++)new WorldGenLiquids173(BlockConstants.SOURCE_LAVA).populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(Math.max(1,random.nextInt(Math.max(1,random.nextInt(232)+8)+8))),baseZ+random.nextInt(16)+8);
-    }
-
-    private void freezeAndSnow(final World world,final BlockAccess access,final Random random,final int baseX,final int baseZ){
-        for(int x=baseX+8;x<baseX+24;x++){
-            for(int z=baseZ+8;z<baseZ+24;z++){
-                final int top=world.getHighestBlockYAt(x,z);
-                if(top<=0||top>255)continue;
-                final Material below=access.getType(x,top-1,z);
-                if(below==Material.WATER){
-                    access.setType(x,top-1,z,Material.ICE,false);
-                    continue;
-                }
-                if((below==Material.GRASS_BLOCK||below==Material.DIRT)&&access.getType(x,top,z).isAir()){
-                    if(random.nextInt(3)==0)access.setType(x,top,z,Material.SNOW,false);
-                }
-            }
-        }
-    }
-}    private void applySurface(final ChunkData data, final int[] biomeIds,
+    private void applySurface(final ChunkData data, final int[] biomeIds,
                               final long seed, final int chunkX, final int chunkZ) {
         final NoiseState state = this.state(seed);
         final Random chunkRandom = new Random((long)chunkX * 341873128712L + (long)chunkZ * 132897987541L);
@@ -474,122 +352,286 @@ public final class V125ChunkGenerator extends ChunkGenerator {
     }
 
     public void runPopulators(final World world, final Chunk chunk) {
-        final int chunkX=chunk.getX();
-        final int chunkZ=chunk.getZ();
-        final int worldX=chunkX*16;
-        final int worldZ=chunkZ*16;
-        final Random random=new Random();
-        random.setSeed(world.getSeed());
-        final long oddX=random.nextLong()/2L*2L+1L;
-        final long oddZ=random.nextLong()/2L*2L+1L;
-        random.setSeed((long)chunkX*oddX+(long)chunkZ*oddZ ^ world.getSeed());
+        final int chunkX = chunk.getX();
+        final int chunkZ = chunk.getZ();
+        final int blockX = chunkX * 16;
+        final int blockZ = chunkZ * 16;
 
-        final BlockAccess access=new WorldBlockAccess(world,0,255);
-        final int[] ids=this.biomeSource.getBiomeIds(world.getSeed(),worldX+8,worldZ+8,1,1);
-        final int biomeId=ids[0];
+        final Random random = new Random(world.getSeed());
+        final long oddX = random.nextLong() / 2L * 2L + 1L;
+        final long oddZ = random.nextLong() / 2L * 2L + 1L;
+        random.setSeed((long)chunkX * oddX + (long)chunkZ * oddZ ^ world.getSeed());
 
-        // 1.2.5 ordering: lakes, dungeons, biome decoration, then freeze/snow.
-        if (random.nextInt(4)==0) {
-            int x=worldX+random.nextInt(16)+8;
-            int y=random.nextInt(256);
-            int z=worldZ+random.nextInt(16)+8;
-            new WorldGenLakes173(BlockConstants.SOURCE_WATER).populate(access,random,x,y,z);
-        }
-        if (random.nextInt(8)==0) {
-            int x=worldX+random.nextInt(16)+8;
-            int y=random.nextInt(random.nextInt(248)+8);
-            int z=worldZ+random.nextInt(16)+8;
-            if(y<63 || random.nextInt(10)==0) new WorldGenLakes173(BlockConstants.SOURCE_LAVA).populate(access,random,x,y,z);
-        }
-        for(int i=0;i<8;i++){
-            int x=worldX+random.nextInt(16)+8;
-            int y=random.nextInt(256);
-            int z=worldZ+random.nextInt(16)+8;
-            new WorldGenDungeons173().populate(access,random,x,y,z);
+        final BlockAccess access = new WorldBlockAccess(world, 0, 127);
+        final int[] centerBiome = this.biomeSource.getBiomeIds(world.getSeed(), blockX + 16, blockZ + 16, 1, 1);
+        final int biomeId = centerBiome[0];
+
+        // MapGenStructure#generateStructuresInChunk runs first in vanilla.
+        // Until the piece generators are ported, structure generation is disabled
+        // at this stage rather than silently changing the population RNG order.
+
+        if (random.nextInt(4) == 0) {
+            final int x = blockX + random.nextInt(16) + 8;
+            final int y = random.nextInt(128);
+            final int z = blockZ + random.nextInt(16) + 8;
+            new WorldGenLakes173(BlockConstants.SOURCE_WATER).populate(access, random, x, y, z);
         }
 
-        generateOres(access,random,worldX,worldZ);
-        decorateBiome(access,random,world,biomeId,worldX,worldZ);
-        freezeAndSnow(world,access,random,worldX,worldZ);
+        if (random.nextInt(8) == 0) {
+            final int x = blockX + random.nextInt(16) + 8;
+            final int y = random.nextInt(random.nextInt(120) + 8);
+            final int z = blockZ + random.nextInt(16) + 8;
+            if (y < SEA_LEVEL || random.nextInt(10) == 0) {
+                new WorldGenLakes173(BlockConstants.SOURCE_LAVA).populate(access, random, x, y, z);
+            }
+        }
+
+        for (int i = 0; i < 8; ++i) {
+            final int x = blockX + random.nextInt(16) + 8;
+            final int y = random.nextInt(128);
+            final int z = blockZ + random.nextInt(16) + 8;
+            new WorldGenDungeons173().populate(access, random, x, y, z);
+        }
+
+        generateOres(access, random, blockX, blockZ);
+        decorateBiome(access, random, biomeId, blockX, blockZ);
+        decorateLiquids(access, random, blockX, blockZ);
+        freezeAndSnow(world, access, blockX, blockZ);
     }
 
     private void generateOres(final BlockAccess world, final Random random, final int baseX, final int baseZ) {
-        for(int i=0;i<20;i++) ore(world,random,new WorldGenMinable173(BlockConstants.DIRT,32),baseX,baseZ,0,256);
-        for(int i=0;i<10;i++) ore(world,random,new WorldGenMinable173(BlockConstants.GRAVEL,32),baseX,baseZ,0,256);
-        for(int i=0;i<20;i++) ore(world,random,new WorldGenMinable173(BlockConstants.COAL_ORE,16),baseX,baseZ,0,128);
-        for(int i=0;i<20;i++) ore(world,random,new WorldGenMinable173(BlockConstants.IRON_ORE,8),baseX,baseZ,0,64);
-        for(int i=0;i<2;i++) ore(world,random,new WorldGenMinable173(BlockConstants.GOLD_ORE,8),baseX,baseZ,0,32);
-        for(int i=0;i<8;i++) ore(world,random,new WorldGenMinable173(BlockConstants.REDSTONE_ORE,7),baseX,baseZ,0,16);
-        for(int i=0;i<1;i++) ore(world,random,new WorldGenMinable173(BlockConstants.DIAMOND_ORE,7),baseX,baseZ,0,16);
-        for(int i=0;i<1;i++) {
-            int x=baseX+random.nextInt(16), z=baseZ+random.nextInt(16);
-            int y=random.nextInt(16)+random.nextInt(16);
-            new WorldGenMinable173(BlockConstants.LAPIS_ORE,6).populate(world,random,x,y,z);
+        for (int i = 0; i < 20; ++i) {
+            ore(world, random, new WorldGenMinable173(BlockConstants.DIRT, 32), baseX, baseZ, 0, 128);
+        }
+        for (int i = 0; i < 10; ++i) {
+            ore(world, random, new WorldGenMinable173(BlockConstants.GRAVEL, 32), baseX, baseZ, 0, 128);
+        }
+        for (int i = 0; i < 20; ++i) {
+            ore(world, random, new WorldGenMinable173(BlockConstants.COAL_ORE, 16), baseX, baseZ, 0, 128);
+        }
+        for (int i = 0; i < 20; ++i) {
+            ore(world, random, new WorldGenMinable173(BlockConstants.IRON_ORE, 8), baseX, baseZ, 0, 64);
+        }
+        for (int i = 0; i < 2; ++i) {
+            ore(world, random, new WorldGenMinable173(BlockConstants.GOLD_ORE, 8), baseX, baseZ, 0, 32);
+        }
+        for (int i = 0; i < 8; ++i) {
+            ore(world, random, new WorldGenMinable173(BlockConstants.REDSTONE_ORE, 7), baseX, baseZ, 0, 16);
+        }
+        ore(world, random, new WorldGenMinable173(BlockConstants.DIAMOND_ORE, 7), baseX, baseZ, 0, 16);
+
+        final int x = baseX + random.nextInt(16);
+        final int z = baseZ + random.nextInt(16);
+        final int y = random.nextInt(16) + random.nextInt(16);
+        new WorldGenMinable173(BlockConstants.LAPIS_ORE, 6).populate(world, random, x, y, z);
+    }
+
+    private static void ore(final BlockAccess world, final Random random,
+                            final WorldGenMinable173 generator,
+                            final int baseX, final int baseZ,
+                            final int minY, final int maxY) {
+        generator.populate(world, random,
+                baseX + random.nextInt(16),
+                minY + random.nextInt(maxY - minY),
+                baseZ + random.nextInt(16));
+    }
+
+    private void decorateBiome(final BlockAccess world, final Random random,
+                               final int biomeId, final int baseX, final int baseZ) {
+        int trees = 0;
+        int flowers = 2;
+        int grass = 1;
+        int deadBush = 0;
+        int mushrooms = 0;
+        int bigMushrooms = 0;
+        int reeds = 10;
+        int cacti = 0;
+
+        switch (biomeId) {
+            case 1: // plains
+                trees = -999;
+                flowers = 4;
+                grass = 10;
+                break;
+            case 2: // desert
+                trees = -999;
+                deadBush = 2;
+                reeds = 50;
+                cacti = 10;
+                break;
+            case 4: // forest
+            case 18: // forest hills
+                trees = 10;
+                grass = 2;
+                break;
+            case 5: // taiga
+            case 19: // taiga hills
+                trees = 10;
+                grass = 1;
+                break;
+            case 6: // swamp
+                trees = 2;
+                flowers = -999;
+                deadBush = 1;
+                mushrooms = 8;
+                reeds = 10;
+                break;
+            case 12: // ice plains
+            case 13: // ice mountains
+                flowers = 2;
+                grass = 0;
+                break;
+            case 14: // mushroom island
+            case 15: // mushroom shore
+                trees = -100;
+                flowers = -100;
+                grass = -100;
+                mushrooms = 1;
+                bigMushrooms = 1;
+                break;
+            case 21: // jungle
+            case 22: // jungle hills
+                trees = 50;
+                grass = 25;
+                flowers = 4;
+                break;
+            case 16: // beach
+                trees = -999;
+                deadBush = 0;
+                reeds = 0;
+                cacti = 0;
+                break;
+            default:
+                break;
+        }
+
+        trees += random.nextInt(10) == 0 ? 1 : 0;
+        for (int i = 0; i < trees; ++i) {
+            final int x = baseX + random.nextInt(16) + 8;
+            final int z = baseZ + random.nextInt(16) + 8;
+            final int y = Math.min(127, world.getHighestBlockYAt(x, z));
+            generateTree(world, random, biomeId, x, y, z);
+        }
+
+        for (int i = 0; i < flowers; ++i) {
+            final int x = baseX + random.nextInt(16) + 8;
+            final int y = random.nextInt(128);
+            final int z = baseZ + random.nextInt(16) + 8;
+            new WorldGenFlowers173(BlockConstants.DANDELION).populate(world, random, x, y, z);
+
+            final int redX = baseX + random.nextInt(16) + 8;
+            final int redY = random.nextInt(128);
+            final int redZ = baseZ + random.nextInt(16) + 8;
+            new WorldGenFlowers173(BlockConstants.POPPY).populate(world, random, redX, redY, redZ);
+        }
+
+        for (int i = 0; i < grass; ++i) {
+            final int x = baseX + random.nextInt(16) + 8;
+            final int y = random.nextInt(128);
+            final int z = baseZ + random.nextInt(16) + 8;
+            new WorldGenGrass173(BlockConstants.SHORT_GRASS).populate(world, random, x, y, z);
+        }
+
+        for (int i = 0; i < deadBush; ++i) {
+            final int x = baseX + random.nextInt(16) + 8;
+            final int y = random.nextInt(128);
+            final int z = baseZ + random.nextInt(16) + 8;
+            new WorldGenDeadBush173(BlockConstants.DEAD_BUSH).populate(world, random, x, y, z);
+        }
+
+        for (int i = 0; i < mushrooms; ++i) {
+            final int x = baseX + random.nextInt(16) + 8;
+            final int y = random.nextInt(128);
+            final int z = baseZ + random.nextInt(16) + 8;
+            if (random.nextBoolean()) {
+                new WorldGenFlowers173(BlockConstants.BROWN_MUSHROOM).populate(world, random, x, y, z);
+            }
+            if (random.nextInt(4) == 0) {
+                new WorldGenFlowers173(BlockConstants.RED_MUSHROOM).populate(world, random, x, y, z);
+            }
+        }
+
+        for (int i = 0; i < bigMushrooms; ++i) {
+            final int x = baseX + random.nextInt(16) + 8;
+            final int z = baseZ + random.nextInt(16) + 8;
+            final int y = Math.min(127, world.getHighestBlockYAt(x, z));
+            // Modern API does not expose the 1.2.5 big-mushroom generator through
+            // Bukkit's ChunkGenerator, so preserve its attempt/seed behavior here.
+            if (world.getBlockAt(x, y, z).getType() == Material.MYCELIUM) {
+                world.getBlockAt(x, y, z).setType(Material.BROWN_MUSHROOM);
+            }
+        }
+
+        for (int i = 0; i < reeds; ++i) {
+            generateReed(world, random, baseX, baseZ);
+        }
+
+        if (random.nextInt(32) == 0) {
+            new WorldGenPumpkin173().populate(world, random,
+                    baseX + random.nextInt(16) + 8, random.nextInt(128),
+                    baseZ + random.nextInt(16) + 8);
+        }
+
+        for (int i = 0; i < cacti; ++i) {
+            new WorldGenCactus173().populate(world, random,
+                    baseX + random.nextInt(16) + 8, random.nextInt(128),
+                    baseZ + random.nextInt(16) + 8);
         }
     }
 
-    private void ore(BlockAccess world,Random random,WorldGenMinable173 generator,int x,int z,int min,int max){
-        generator.populate(world,random,x+random.nextInt(16),min+random.nextInt(max-min),z+random.nextInt(16));
+    private static void generateTree(final BlockAccess world, final Random random,
+                                     final int biomeId, final int x, final int y, final int z) {
+        if (biomeId == 6) {
+            new WorldGenTrees173().populate(world, random, x, y, z);
+        } else if (biomeId == 4 || biomeId == 18) {
+            if (random.nextInt(5) == 0) {
+                new WorldGenForest173().populate(world, random, x, y, z);
+            } else if (random.nextInt(10) == 0) {
+                new WorldGenBigTree173().populate(world, random, x, y, z);
+            } else {
+                new WorldGenTrees173().populate(world, random, x, y, z);
+            }
+        } else {
+            new WorldGenTrees173().populate(world, random, x, y, z);
+        }
     }
 
-    private void decorateBiome(final BlockAccess access,final Random random,final World world,final int id,final int baseX,final int baseZ) {
-        int trees=0, flowers=2, grass=1, dead=0, mushrooms=0, reeds=0, cactus=0;
-        switch(id){
-            case 4: trees=10; break;
-            case 18: trees=10; break;
-            case 5: case 19: trees=10; grass=1; break;
-            case 21: trees=50; grass=25; reeds=10; break;
-            case 22: trees=50; grass=25; reeds=10; break;
-            case 2: case 17: flowers=0; grass=0; dead=10; cactus=10; break;
-            case 6: trees=0; flowers=1; grass=5; mushrooms=1; reeds=10; break;
-            case 12: case 13: flowers=0; grass=0; break;
-            case 14: case 15: trees=0; flowers=0; grass=0; mushrooms=1; break;
-            case 1: trees=0; flowers=2; grass=10; break;
-        }
-
-        int treeAttempts=trees+(random.nextInt(10)==0?1:0);
-        for(int i=0;i<treeAttempts;i++){
-            int x=baseX+random.nextInt(16)+8,z=baseZ+random.nextInt(16)+8;
-            new WorldGenTrees173().populate(access,random,x,world.getHighestBlockYAt(x,z),z);
-        }
-        for(int i=0;i<flowers;i++){
-            int x=baseX+random.nextInt(16)+8,y=random.nextInt(256),z=baseZ+random.nextInt(16)+8;
-            new WorldGenFlowers173(BlockConstants.DANDELION).populate(access,random,x,y,z);
-            if(random.nextInt(4)==0)new WorldGenFlowers173(BlockConstants.POPPY).populate(access,random,x,y,z);
-        }
-        for(int i=0;i<grass;i++){
-            int x=baseX+random.nextInt(16)+8,y=random.nextInt(256),z=baseZ+random.nextInt(16)+8;
-            new WorldGenGrass173(BlockConstants.SHORT_GRASS).populate(access,random,x,y,z);
-        }
-        for(int i=0;i<dead;i++){
-            int x=baseX+random.nextInt(16)+8,y=random.nextInt(256),z=baseZ+random.nextInt(16)+8;
-            new WorldGenDeadBush173(BlockConstants.DEAD_BUSH).populate(access,random,x,y,z);
-        }
-        for(int i=0;i<mushrooms;i++){
-            if(random.nextInt(4)==0)new WorldGenFlowers173(BlockConstants.BROWN_MUSHROOM).populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(256),baseZ+random.nextInt(16)+8);
-            if(random.nextInt(8)==0)new WorldGenFlowers173(BlockConstants.RED_MUSHROOM).populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(256),baseZ+random.nextInt(16)+8);
-        }
-        for(int i=0;i<reeds+10;i++){
-            new WorldGenReed173().populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(256),baseZ+random.nextInt(16)+8);
-        }
-        if(random.nextInt(32)==0)new WorldGenPumpkin173().populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(256),baseZ+random.nextInt(16)+8);
-        for(int i=0;i<cactus;i++)new WorldGenCactus173().populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(256),baseZ+random.nextInt(16)+8);
-        for(int i=0;i<50;i++)new WorldGenLiquids173(BlockConstants.SOURCE_WATER).populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(random.nextInt(248)+8),baseZ+random.nextInt(16)+8);
-        for(int i=0;i<20;i++)new WorldGenLiquids173(BlockConstants.SOURCE_LAVA).populate(access,random,baseX+random.nextInt(16)+8,random.nextInt(Math.max(1,random.nextInt(Math.max(1,random.nextInt(232)+8)+8))),baseZ+random.nextInt(16)+8);
+    private static void generateReed(final BlockAccess world, final Random random, final int baseX, final int baseZ) {
+        final int x = baseX + random.nextInt(16) + 8;
+        final int y = random.nextInt(128);
+        final int z = baseZ + random.nextInt(16) + 8;
+        new WorldGenReed173().populate(world, random, x, y, z);
     }
 
-    private void freezeAndSnow(final World world,final BlockAccess access,final Random random,final int baseX,final int baseZ){
-        for(int x=baseX+8;x<baseX+24;x++){
-            for(int z=baseZ+8;z<baseZ+24;z++){
-                final int top=world.getHighestBlockYAt(x,z);
-                if(top<=0||top>255)continue;
-                final Material below=access.getType(x,top-1,z);
-                if(below==Material.WATER){
-                    access.setType(x,top-1,z,Material.ICE,false);
+    private static void decorateLiquids(final BlockAccess world, final Random random,
+                                        final int baseX, final int baseZ) {
+        for (int i = 0; i < 50; ++i) {
+            new WorldGenLiquids173(BlockConstants.SOURCE_WATER).populate(world, random,
+                    baseX + random.nextInt(16) + 8, random.nextInt(random.nextInt(120) + 8),
+                    baseZ + random.nextInt(16) + 8);
+        }
+        for (int i = 0; i < 20; ++i) {
+            new WorldGenLiquids173(BlockConstants.SOURCE_LAVA).populate(world, random,
+                    baseX + random.nextInt(16) + 8, random.nextInt(random.nextInt(112) + 8),
+                    baseZ + random.nextInt(16) + 8);
+        }
+    }
+
+    private static void freezeAndSnow(final World world, final BlockAccess access,
+                                      final int baseX, final int baseZ) {
+        for (int x = baseX + 8; x < baseX + 24; ++x) {
+            for (int z = baseZ + 8; z < baseZ + 24; ++z) {
+                final int top = Math.min(127, world.getHighestBlockYAt(x, z));
+                if (top <= 0 || top > 127) {
                     continue;
                 }
-                if((below==Material.GRASS_BLOCK||below==Material.DIRT)&&access.getType(x,top,z).isAir()){
-                    if(random.nextInt(3)==0)access.setType(x,top,z,Material.SNOW,false);
+                final Material precipitationBlock = access.getType(x, top - 1, z);
+                if (precipitationBlock == Material.WATER) {
+                    access.setType(x, top - 1, z, Material.ICE, false);
+                }
+                if ((precipitationBlock == Material.GRASS_BLOCK || precipitationBlock == Material.DIRT)
+                        && access.getType(x, top, z).isAir()) {
+                    access.setType(x, top, z, Material.SNOW, false);
                 }
             }
         }
