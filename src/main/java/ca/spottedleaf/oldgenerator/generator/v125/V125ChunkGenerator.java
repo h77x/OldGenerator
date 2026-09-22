@@ -351,6 +351,10 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         }
     }
 
+    private static int densityIndex(final int x, final int z, final int y) {
+        return (x * 5 + z) * 17 + y;
+    }
+
     public void runPopulators(final World world, final Chunk chunk) {
         final int chunkX = chunk.getX();
         final int chunkZ = chunk.getZ();
@@ -557,8 +561,8 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             final int y = Math.min(127, world.getHighestBlockYAt(x, z));
             // Modern API does not expose the 1.2.5 big-mushroom generator through
             // Bukkit's ChunkGenerator, so preserve its attempt/seed behavior here.
-            if (world.getBlockAt(x, y, z).getType() == Material.MYCELIUM) {
-                world.getBlockAt(x, y, z).setType(Material.BROWN_MUSHROOM);
+            if (world.getType(x, y, z) == Material.MYCELIUM) {
+                world.setType(x, y, z, Material.BROWN_MUSHROOM, false);
             }
         }
 
