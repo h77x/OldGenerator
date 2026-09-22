@@ -384,12 +384,33 @@ public final class World {
         return manager.getBiomeGenAt(x, z);
     }
     public boolean isBlockFreezable(final int x, final int y, final int z) {
+        return canBlockFreeze(x, y, z, false);
+    }
+
+    public boolean canBlockFreeze(final int x, final int y, final int z, final boolean natural) {
         final BiomeGenBase biome = getBiomeGenForCoords(x, z);
+        if (biome == null || biomeTemperature(biome.biomeID) > 0.15F) return false;
+        if (y < access.getMinHeight() || y > access.getMaxHeight()) return false;
         final int id = getBlockId(x, y, z);
-        return biome != null
-                && biome.biomeID >= 0
-                && biomeTemperature(biome.biomeID) <= 0.15F
-                && (id == Block.waterStill.blockID || id == Block.waterMoving.blockID);
+        if (id != Block.waterStill.blockID && id != Block.waterMoving.blockID) return false;
+        if (!natural) return true;
+
+        return getBlockMaterial(x - 1, y, z) != Material.water
+                || getBlockMaterial(x + 1, y, z) != Material.water
+                || getBlockMaterial(x, y, z - 1) != Material.water
+                || getBlockMaterial(x, y, z + 1) != Material.water;
+    }
+
+    public boolean canSnowAt(final int x, final int y, final int z) {
+        final BiomeGenBase biome = getBiomeGenForCoords(x, z);
+        if (biome == null || biomeTemperature(biome.biomeID) > 0.15F) return false;
+        if (y < access.getMinHeight() || y > access.getMaxHeight()) return false;
+        final int below = getBlockId(x, y - 1, z);
+        return getBlockId(x, y, z) == Block.air.blockID
+                && below != Block.air.blockID
+                && below != Block.ice.blockID
+                && Block.blocksList[below] != null
+                && Block.blocksList[below].blockMaterial.blocksMovement();
     }
 
     private static float biomeTemperature(final int biomeId) {
@@ -417,4 +438,8 @@ public final class World {
     }
     public void notifyBlocksOfNeighborChange(int x,int y,int z,int id){}
     public static final class WorldProvider { public int getAverageGroundLevel(){return 64;} }
-}
+}    public int getBlockMetadata(final int x, final int y, final int z) {
+        return 0;
+    }
+
+
