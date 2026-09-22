@@ -3,11 +3,26 @@ package ca.spottedleaf.oldgenerator.generator.v125.noise;
 import java.util.Random;
 
 /**
- * Standalone Perlin noise implementation used by the 1.2.5 terrain port.
- * The implementation deliberately has no dependency on NMS.
+ * Source-faithful Minecraft 1.2.5 NoiseGeneratorPerlin.
+ *
+ * This intentionally keeps the old permutation construction and octave
+ * accumulation semantics instead of using a modernised Perlin implementation.
  */
 public final class NoiseGeneratorPerlin125 {
-    private final int[] permutations = new int[512];
+    private static final double[] GRAD_X = {
+        1.0D, -1.0D, 1.0D, -1.0D, 1.0D, -1.0D, 1.0D, -1.0D,
+        0.0D, 0.0D, 0.0D, 0.0D, 1.0D, 0.0D, -1.0D, 0.0D
+    };
+    private static final double[] GRAD_Y = {
+        1.0D, 1.0D, -1.0D, -1.0D, 0.0D, 0.0D, 0.0D, 0.0D,
+        1.0D, -1.0D, 1.0D, -1.0D, 1.0D, -1.0D, 1.0D, -1.0D
+    };
+    private static final double[] GRAD_Z = {
+        0.0D, 0.0D, 0.0D, 0.0D, 1.0D, 1.0D, -1.0D, -1.0D,
+        1.0D, 1.0D, -1.0D, -1.0D, 0.0D, 1.0D, 0.0D, -1.0D
+    };
+
+    private final int[] permutation = new int[512];
     private final double xOffset;
     private final double yOffset;
     private final double zOffset;
@@ -17,68 +32,148 @@ public final class NoiseGeneratorPerlin125 {
         this.yOffset = random.nextDouble() * 256.0D;
         this.zOffset = random.nextDouble() * 256.0D;
 
-        final int[] p = new int[256];
         for (int i = 0; i < 256; ++i) {
-            p[i] = i;
+            this.permutation[i] = i;
         }
-        for (int i = 0; i < 256; ++i) {
-            final int j = i + random.nextInt(256 - i);
-            final int v = p[i];
-            p[i] = p[j];
-            p[j] = v;
-        }
-        for (int i = 0; i < 512; ++i) {
-            this.permutations[i] = p[i & 255];
-        }
-    }
 
-    private static double fade(final double t) {
-        return t * t * t * (t * (t * 6.0D - 15.0D) + 10.0D);
+        for (int i = 0; i < 256; ++i) {
+            final int j = random.nextInt(256 - i) + i;
+            final int k = this.permutation[i];
+            this.permutation[i] = this.permutation[j];
+            this.permutation[j] = k;
+            this.permutation[i + 256] = this.permutation[i];
+        }
     }
 
     private static double lerp(final double t, final double a, final double b) {
         return a + t * (b - a);
     }
 
-    private static double grad(final int hash, final double x, final double y, final double z) {
-        final int h = hash & 15;
-        final double u = h < 8 ? x : y;
-        final double v = h < 4 ? y : (h == 12 || h == 14 ? x : z);
-        return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+    private static double grad2(final int hash, final double x, final double y) {
+        final int index = hash & 15;
+        return GRAD_X[index] * x + GRAD_Y[index] * y;
     }
 
-    public double noise(final double x, final double y, final double z) {
-        double xx = x + this.xOffset;
-        double yy = y + this.yOffset;
-        double zz = z + this.zOffset;
+    private static double grad3(final int hash, final double x, final double y, final double z) {
+        final int index = hash & 15;
+        return GRAD_X[index] * x + GRAD_Y[index] * y + GRAD_Z[index] * z;
+    }
 
-        final int xi = ((int)Math.floor(xx)) & 255;
-        final int yi = ((int)Math.floor(yy)) & 255;
-        final int zi = ((int)Math.floor(zz)) & 255;
+    private static double floor(final double value) {
+        final int integer = (int)value;
+        return value < integer ? integer - 1.0D : integer;
+    }
 
-        xx -= Math.floor(xx);
-        yy -= Math.floor(yy);
-        zz -= Math.floor(zz);
+    public void generateNoise(final double[] output,
+                              final double x, final double y, final double z,
+                              final int xSize, final int ySize, final int zSize,
+                              final double scaleX, final double scaleY, final double scaleZ,
+                              final double persistence) {
+        if (ySize == 1) {
+            int outIndex = 0;
+            final double inversePersistence = 1.0D / persistence;
 
-        final double u = fade(xx);
-        final double v = fade(yy);
-        final double w = fade(zz);
+            for (int ix = 0; ix < xSize; ++ix) {
+                final double sampleX = x + ix * scaleX + this.xOffset;
+                int floorX = (int)sampleX;
+                if (sampleX < floorX) {
+                    --floorX;
+                }
+                final int permX = floorX & 255;
+                final double fracX = sampleX - floorX;
+                final double fadeX = fracX * fracX * fracX * (fracX * (fracX * 6.0D - 15.0D) + 10.0D);
 
-        final int a = this.permutations[xi] + yi;
-        final int aa = this.permutations[a] + zi;
-        final int ab = this.permutations[a + 1] + zi;
-        final int b = this.permutations[xi + 1] + yi;
-        final int ba = this.permutations[b] + zi;
-        final int bb = this.permutations[b + 1] + zi;
+                for (int iz = 0; iz < zSize; ++iz) {
+                    final double sampleZ = z + iz * scaleZ + this.zOffset;
+                    int floorZ = (int)sampleZ;
+                    if (sampleZ < floorZ) {
+                        --floorZ;
+                    }
+                    final int permZ = floorZ & 255;
+                    final double fracZ = sampleZ - floorZ;
+                    final double fadeZ = fracZ * fracZ * fracZ * (fracZ * (fracZ * 6.0D - 15.0D) + 10.0D);
 
-        return lerp(w,
-                lerp(v, lerp(u, grad(this.permutations[aa], xx, yy, zz),
-                                grad(this.permutations[ba], xx - 1.0D, yy, zz)),
-                        lerp(u, grad(this.permutations[ab], xx, yy - 1.0D, zz),
-                                grad(this.permutations[bb], xx - 1.0D, yy - 1.0D, zz))),
-                lerp(v, lerp(u, grad(this.permutations[aa + 1], xx, yy, zz - 1.0D),
-                                grad(this.permutations[ba + 1], xx - 1.0D, yy, zz - 1.0D)),
-                        lerp(u, grad(this.permutations[ab + 1], xx, yy - 1.0D, zz - 1.0D),
-                                grad(this.permutations[bb + 1], xx - 1.0D, yy - 1.0D, zz - 1.0D)));
+                    final int a = this.permutation[permX];
+                    final int aa = this.permutation[a + permZ];
+                    final int b = this.permutation[permX + 1];
+                    final int ba = this.permutation[b + permZ];
+
+                    final double x0 = lerp(fadeX,
+                            grad3(this.permutation[aa], fracX, 0.0D, fracZ),
+                            grad3(this.permutation[ba], fracX - 1.0D, 0.0D, fracZ));
+                    final double x1 = lerp(fadeX,
+                            grad3(this.permutation[aa + 1], fracX, 0.0D, fracZ - 1.0D),
+                            grad3(this.permutation[ba + 1], fracX - 1.0D, 0.0D, fracZ - 1.0D));
+                    output[outIndex++] += lerp(fadeZ, x0, x1) * inversePersistence;
+                }
+            }
+            return;
+        }
+
+        int outIndex = 0;
+        final double inversePersistence = 1.0D / persistence;
+
+        int lastYPermutation = -1;
+        double x0 = 0.0D;
+        double x1 = 0.0D;
+        double z0 = 0.0D;
+        double z1 = 0.0D;
+
+        for (int ix = 0; ix < xSize; ++ix) {
+            final double sampleX = x + ix * scaleX + this.xOffset;
+            int floorX = (int)sampleX;
+            if (sampleX < floorX) {
+                --floorX;
+            }
+            final int permX = floorX & 255;
+            final double fracX = sampleX - floorX;
+            final double fadeX = fracX * fracX * fracX * (fracX * (fracX * 6.0D - 15.0D) + 10.0D);
+
+            for (int iz = 0; iz < zSize; ++iz) {
+                final double sampleZ = z + iz * scaleZ + this.zOffset;
+                int floorZ = (int)sampleZ;
+                if (sampleZ < floorZ) {
+                    --floorZ;
+                }
+                final int permZ = floorZ & 255;
+                final double fracZ = sampleZ - floorZ;
+                final double fadeZ = fracZ * fracZ * fracZ * (fracZ * (fracZ * 6.0D - 15.0D) + 10.0D);
+
+                for (int iy = 0; iy < ySize; ++iy) {
+                    final double sampleY = y + iy * scaleY + this.yOffset;
+                    int floorY = (int)sampleY;
+                    if (sampleY < floorY) {
+                        --floorY;
+                    }
+                    final int permY = floorY & 255;
+                    final double fracY = sampleY - floorY;
+                    final double fadeY = fracY * fracY * fracY * (fracY * (fracY * 6.0D - 15.0D) + 10.0D);
+
+                    if (iy == 0 || permY != lastYPermutation) {
+                        lastYPermutation = permY;
+                        final int p00 = this.permutation[permX] + permY;
+                        final int p10 = this.permutation[permX + 1] + permY;
+
+                        x0 = lerp(fadeX,
+                                grad3(this.permutation[p00 + permZ], fracX, fracY, fracZ),
+                                grad3(this.permutation[p10 + permZ], fracX - 1.0D, fracY, fracZ));
+                        x1 = lerp(fadeX,
+                                grad3(this.permutation[p00 + permZ + 1], fracX, fracY, fracZ - 1.0D),
+                                grad3(this.permutation[p10 + permZ + 1], fracX - 1.0D, fracY, fracZ - 1.0D));
+
+                        z0 = lerp(fadeX,
+                                grad3(this.permutation[p00 + 1 + permZ], fracX, fracY - 1.0D, fracZ),
+                                grad3(this.permutation[p10 + 1 + permZ], fracX - 1.0D, fracY - 1.0D, fracZ));
+                        z1 = lerp(fadeX,
+                                grad3(this.permutation[p00 + 1 + permZ + 1], fracX, fracY - 1.0D, fracZ - 1.0D),
+                                grad3(this.permutation[p10 + 1 + permZ + 1], fracX - 1.0D, fracY - 1.0D, fracZ - 1.0D));
+                    }
+
+                    final double y0 = lerp(fadeY, x0, z0);
+                    final double y1 = lerp(fadeY, x1, z1);
+                    output[outIndex++] += lerp(fadeZ, y0, y1) * inversePersistence;
+                }
+            }
+        }
     }
 }
