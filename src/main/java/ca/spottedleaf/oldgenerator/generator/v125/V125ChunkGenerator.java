@@ -5,6 +5,8 @@ import ca.spottedleaf.oldgenerator.generator.v125.noise.NoiseGeneratorOctaves125
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Caves;
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Ravine;
 import ca.spottedleaf.oldgenerator.generator.v125.populate.*;
+import ca.spottedleaf.oldgenerator.generator.v125.tree.*;
+import ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World;
 import ca.spottedleaf.oldgenerator.generator.v125.structure.V125StructureGenerator;
 import org.bukkit.generator.BlockPopulator;
 import java.util.Collections;
@@ -522,7 +524,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             final int x = baseX + random.nextInt(16) + 8;
             final int z = baseZ + random.nextInt(16) + 8;
             final int y = Math.min(127, world.getHighestBlockYAt(x, z));
-            generateTree(world, random, biomeId, x, y, z);
+            generateTree(new World(world), random, biomeId, x, y, z);
         }
 
         for (int i = 0; i < bigMushrooms; ++i) {
@@ -613,6 +615,16 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         // BiomeDecorator's late liquid springs.
         decorateLiquids(world, random, baseX, baseZ);
 
+        // BiomeGenJungle.decorate(): vines are generated after the base decorator.
+        if (biomeId == 21 || biomeId == 22) {
+            final World legacyWorld = new World(world);
+            for (int i = 0; i < 50; ++i) {
+                new WorldGenVines().generate(legacyWorld, random,
+                        baseX + random.nextInt(16) + 8, 64,
+                        baseZ + random.nextInt(16) + 8);
+            }
+        }
+
         // Desert wells are part of BiomeGenDesert.decorate().
         if ((biomeId == 2 || biomeId == 17) && random.nextInt(1000) == 0) {
             final int x = baseX + random.nextInt(16) + 8;
@@ -637,49 +649,46 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         new WorldGenClay173(4).populate(world, random, x, y, z);
     }
 
-    private static void generateTree(final BlockAccess world, final Random random,
+    private static void generateTree(final World world, final Random random,
                                      final int biomeId, final int x, final int y, final int z) {
         switch (biomeId) {
             case 6:
-                // 1.2.5 BiomeGenSwamp returns the dedicated swamp tree.
-                new WorldGenTrees173().populate(world, random, x, y, z);
+                new WorldGenSwamp().generate(world, random, x, y, z);
                 return;
             case 4:
             case 18:
-                // BiomeGenForest: nextInt(5), then nextInt(10).
                 if (random.nextInt(5) == 0) {
-                    new WorldGenForest173().populate(world, random, x, y, z);
+                    new WorldGenForest(false).generate(world, random, x, y, z);
                 } else if (random.nextInt(10) == 0) {
-                    new WorldGenBigTree173().populate(world, random, x, y, z);
+                    new WorldGenBigTree(false).generate(world, random, x, y, z);
                 } else {
-                    new WorldGenTrees173().populate(world, random, x, y, z);
+                    new WorldGenTrees(false).generate(world, random, x, y, z);
                 }
                 return;
             case 5:
             case 19:
-                // BiomeGenTaiga: nextInt(3), then taiga1/taiga2.
                 if (random.nextInt(3) == 0) {
-                    new WorldGenTaiga1173().populate(world, random, x, y, z);
+                    new WorldGenTaiga1().generate(world, random, x, y, z);
                 } else {
-                    new WorldGenTaiga2173().populate(world, random, x, y, z);
+                    new WorldGenTaiga2(false).generate(world, random, x, y, z);
                 }
                 return;
             case 21:
             case 22:
-                // BiomeGenJungle RNG branch: 10 / 2 / 3. The existing legacy
-                // generators provide the corresponding modern-block shapes.
                 if (random.nextInt(10) == 0) {
-                    new WorldGenBigTree173().populate(world, random, x, y, z);
+                    new WorldGenBigTree(false).generate(world, random, x, y, z);
                 } else if (random.nextInt(2) == 0) {
-                    new WorldGenTrees173().populate(world, random, x, y, z);
+                    new WorldGenShrub(3, 0).generate(world, random, x, y, z);
                 } else if (random.nextInt(3) == 0) {
-                    new WorldGenBigTree173().populate(world, random, x, y, z);
+                    new WorldGenHugeTrees(false, 10 + random.nextInt(20), 3, 3)
+                            .generate(world, random, x, y, z);
                 } else {
-                    new WorldGenTrees173().populate(world, random, x, y, z);
+                    new WorldGenTrees(false, 4 + random.nextInt(7), 3, 3, true)
+                            .generate(world, random, x, y, z);
                 }
                 return;
             default:
-                new WorldGenTrees173().populate(world, random, x, y, z);
+                new WorldGenTrees(false).generate(world, random, x, y, z);
         }
     }
 
