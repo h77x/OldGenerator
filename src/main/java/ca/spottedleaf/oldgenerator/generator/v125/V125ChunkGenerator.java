@@ -751,23 +751,18 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         }
     }
 
-    private static void freezeAndSnow(final BlockAccess access,
-                                      final int biomeId, final int baseX, final int baseZ) {
-        final boolean cold = isCold(biomeId);
+    private void freezeAndSnow(final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World world,
+                                      final int baseX, final int baseZ) {
         for (int x = baseX + 8; x < baseX + 24; ++x) {
             for (int z = baseZ + 8; z < baseZ + 24; ++z) {
-                final int top = Math.min(127, access.getHighestBlockYAt(x, z));
-                if (top <= 0 || top > 127) continue;
+                final int precipitationY = world.getPrecipitationHeight(x, z);
+                if (precipitationY <= 0 || precipitationY > 127) continue;
 
-                final Material precipitationBlock = access.getType(x, top - 1, z);
-                if (cold && precipitationBlock == Material.WATER) {
-                    access.setType(x, top - 1, z, Material.ICE, false);
+                if (world.isBlockFreezable(x, precipitationY - 1, z)) {
+                    world.setBlock(x, precipitationY - 1, z, Block.ice.blockID);
                 }
-
-                if (cold
-                        && (precipitationBlock == Material.GRASS_BLOCK || precipitationBlock == Material.DIRT)
-                        && access.getType(x, top, z).isAir()) {
-                    access.setType(x, top, z, Material.SNOW, false);
+                if (world.canSnowAt(x, precipitationY, z)) {
+                    world.setBlock(x, precipitationY, z, Block.snow.blockID);
                 }
             }
         }
