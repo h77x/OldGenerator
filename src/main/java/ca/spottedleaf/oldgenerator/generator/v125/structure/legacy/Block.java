@@ -47,6 +47,7 @@ public final class Block {
     public static final Block oreCoal = b(16, Material.COAL_ORE);
     public static final Block wood = b(17, Material.OAK_LOG);
     public static final Block leaves = b(18, Material.OAK_LEAVES);
+    public static final Block ice = b(79, Material.ICE);
     public static final Block sponge = b(19, Material.SPONGE);
     public static final Block glass = b(20, Material.GLASS);
     public static final Block oreLapis = b(21, Material.LAPIS_ORE);
@@ -103,6 +104,21 @@ public final class Block {
 
     public boolean canPlaceBlockAt(final World world, final int x, final int y, final int z) {
         return world.isAirBlock(x, y, z);
+    }
+    public boolean isGenMineableReplaceable(final World world, final int x, final int y, final int z) {
+        return this == stone;
+    }
+    public boolean canBlockStay(final World world, final int x, final int y, final int z) {
+        final int below = world.getBlockId(x, y - 1, z);
+        if (this == cactus) return below == sand.blockID;
+        if (this == reed) {
+            return (below == grass.blockID || below == dirt.blockID || below == sand.blockID);
+        }
+        if (this == deadBush) return below == sand.blockID || below == dirt.blockID;
+        if (this == mushroomBrown || this == mushroomRed) return below == grass.blockID || below == dirt.blockID || below == mycelium.blockID;
+        return below == grass.blockID || below == dirt.blockID;
+    }
+    public void updateTick(final World world, final int x, final int y, final int z, final java.util.Random random) {
     }
     public boolean isLeaves(final World world, final int x, final int y, final int z) {
         return this == leaves;
