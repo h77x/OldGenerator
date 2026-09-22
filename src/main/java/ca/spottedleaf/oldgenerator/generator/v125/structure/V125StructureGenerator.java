@@ -3,7 +3,7 @@ package ca.spottedleaf.oldgenerator.generator.v125.structure;
 import ca.spottedleaf.oldgenerator.generator.v125.V125BiomeSource;
 import ca.spottedleaf.oldgenerator.util.BlockConstants;
 import org.bukkit.Material;
-import org.bukkit.generator.ChunkGenerator.ChunkData;
+import ca.spottedleaf.oldgenerator.world.BlockAccess;
 
 import java.util.Random;
 
@@ -19,7 +19,7 @@ public final class V125StructureGenerator {
     private static final int MAX_Y = 127;
 
     public Result generate(final long worldSeed, final int targetChunkX, final int targetChunkZ,
-                           final ChunkData data, final V125BiomeSource biomes) {
+                           final BlockAccess data, final V125BiomeSource biomes) {
         boolean village = false;
 
         for (int cx = targetChunkX - 4; cx <= targetChunkX + 4; ++cx) {
@@ -142,7 +142,7 @@ public final class V125StructureGenerator {
 
     private static void generateMineshaft(final long seed, final int startChunkX, final int startChunkZ,
                                           final int targetChunkX, final int targetChunkZ,
-                                          final ChunkData data) {
+                                          final BlockAccess data) {
         final Random random = mapSeedRandom(seed, startChunkX, startChunkZ);
         final int roomY = 20 + random.nextInt(35);
         final int length = 32 + random.nextInt(48);
@@ -182,7 +182,7 @@ public final class V125StructureGenerator {
 
     private static void generateVillage(final long seed, final int startChunkX, final int startChunkZ,
                                         final int targetChunkX, final int targetChunkZ,
-                                        final ChunkData data) {
+                                        final BlockAccess data) {
         final Random random = mapSeedRandom(seed, startChunkX, startChunkZ);
         final int centerX = (startChunkX << 4) + 8;
         final int centerZ = (startChunkZ << 4) + 8;
@@ -258,7 +258,7 @@ public final class V125StructureGenerator {
     }
 
     private static void generateStronghold(final long seed, final int chunkX, final int chunkZ,
-                                           final ChunkData data) {
+                                           final BlockAccess data) {
         final Random random = mapSeedRandom(seed, chunkX, chunkZ);
         final int y = 30 + random.nextInt(16);
         final int centerX = (chunkX << 4) + 8;
@@ -292,7 +292,7 @@ public final class V125StructureGenerator {
         }
     }
 
-    private static int surfaceY(final ChunkData data, final int targetChunkX, final int targetChunkZ,
+    private static int surfaceY(final BlockAccess data, final int targetChunkX, final int targetChunkZ,
                                 final int worldX, final int worldZ) {
         final int lx = worldX - (targetChunkX << 4);
         final int lz = worldZ - (targetChunkZ << 4);
@@ -303,7 +303,7 @@ public final class V125StructureGenerator {
         return 63;
     }
 
-    private static void set(final ChunkData data, final int chunkX, final int chunkZ,
+    private static void set(final BlockAccess data, final int chunkX, final int chunkZ,
                             final int worldX, final int y, final int worldZ, final Material material) {
         if (y < 0 || y > MAX_Y) return;
         final int localX = worldX - (chunkX << 4);
