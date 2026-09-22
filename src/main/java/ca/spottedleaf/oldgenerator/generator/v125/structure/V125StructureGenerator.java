@@ -4,38 +4,54 @@ import ca.spottedleaf.oldgenerator.generator.v125.V125BiomeSource;
 import ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.*;
 import ca.spottedleaf.oldgenerator.world.BlockAccess;
 
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class V125StructureGenerator {
     private static final int MAP_RANGE = 8;
     private static final int[] STRONGHOLD_BIOMES = {2, 4, 3, 6, 5, 12, 13, 17, 18, 20, 21, 22};
 
+    /*
+     * MapGenStructure in 1.2.5 retains generated StructureStart instances in
+     * coordMap for the lifetime of the generator. Modern chunk generation is
+     * parallel, so the equivalent cache is per-world-seed and its starts are
+     * synchronized while their components are generated.
+     */
+    private final Map<Long, StructureState> worlds = new ConcurrentHashMap<>();
+
     public Result generate(final long seed, final int targetChunkX, final int targetChunkZ,
                            final BlockAccess access, final V125BiomeSource biomes,
                            final Random populationRandom) {
+        final StructureState state = this.worlds.computeIfAbsent(seed, StructureState::new);
         final World world = new World(seed, access, biomes);
         final StructureBoundingBox chunkBox = new StructureBoundingBox(
                 targetChunkX << 4, 0, targetChunkZ << 4,
                 (targetChunkX << 4) + 15, 127, (targetChunkZ << 4) + 15);
 
-        final Random seedRandom = new Random(seed);
-        final long mapSeedX = seedRandom.nextLong();
-        final long mapSeedZ = seedRandom.nextLong();
-
         boolean village = false;
 
         for (int cx = targetChunkX - MAP_RANGE; cx <= targetChunkX + MAP_RANGE; ++cx) {
             for (int cz = targetChunkZ - MAP_RANGE; cz <= targetChunkZ + MAP_RANGE; ++cz) {
-                final Random mapRandom = structureRandom(seed, cx, cz, mapSeedX, mapSeedZ);
-                // MapGenStructure.recursiveGenerate() consumes one nextInt()
-                // before canSpawnStructureAtCoords().
-                mapRandom.nextInt();
+                final long key = chunkKey(cx, cz);
+                StructureStart start = state.mineshafts.get(key);
 
-                if (mapRandom.nextInt(100) == 0
-                        && mapRandom.nextInt(80) < Math.max(Math.abs(cx), Math.abs(cz))) {
-                    final StructureMineshaftStart start =
-                            new StructureMineshaftStart(world, mapRandom, cx, cz);
-                    if (start.getBoundingBox() != null && start.getBoundingBox().intersectsWith(chunkBox)) {
+                if (start == null && state.checkedMineshafts.add(key)) {
+                    final Random mapRandom = structureRandom(state, cx, cz);
+                    mapRandom.nextInt();
+
+                    if (mapRandom.nextInt(100) == 0
+                            && mapRandom.nextInt(80) < Math.max(Math.abs(cx), Math.abs(cz))) {
+                        start = new StructureMineshaftStart(world, mapRandom, cx, cz);
+                        state.mineshafts.put(key, start);
+                    }
+                }
+
+                if (start != null && start.isSizeableStructure()
+                        && start.getBoundingBox() != null
+                        && start.getBoundingBox().intersectsWith(chunkBox)) {
+                    synchronized (start) {
                         start.generateStructure(world, populationRandom, chunkBox);
                     }
                 }
@@ -44,37 +60,50 @@ public final class V125StructureGenerator {
 
         for (int cx = targetChunkX - MAP_RANGE; cx <= targetChunkX + MAP_RANGE; ++cx) {
             for (int cz = targetChunkZ - MAP_RANGE; cz <= targetChunkZ + MAP_RANGE; ++cz) {
-                if (!isVillageStart(seed, cx, cz, biomes)) {
-                    continue;
+                final long key = chunkKey(cx, cz);
+                StructureStart start = state.villages.get(key);
+
+                if (start == null && state.checkedVillages.add(key) && isVillageStart(seed, cx, cz, biomes)) {
+                    final Random mapRandom = structureRandom(state, cx, cz);
+                    mapRandom.nextInt();
+                    start = new StructureVillageStart(world, mapRandom, cx, cz, 0);
+                    state.villages.put(key, start);
                 }
 
-                final Random mapRandom = structureRandom(seed, cx, cz, mapSeedX, mapSeedZ);
-                mapRandom.nextInt(); // MapGenStructure.recursiveGenerate()
-
-                final StructureVillageStart start =
-                        new StructureVillageStart(world, mapRandom, cx, cz, 0);
-                if (!start.isSizeableStructure()) {
-                    continue;
-                }
-
-                if (start.getBoundingBox() != null && start.getBoundingBox().intersectsWith(chunkBox)) {
+                if (start != null && start.isSizeableStructure()
+                        && start.getBoundingBox() != null
+                        && start.getBoundingBox().intersectsWith(chunkBox)) {
                     village = true;
-                    start.generateStructure(world, populationRandom, chunkBox);
+                    synchronized (start) {
+                        start.generateStructure(world, populationRandom, chunkBox);
+                    }
                 }
             }
         }
 
-        for (final int[] stronghold : strongholdChunks(seed, biomes)) {
+        for (final int[] stronghold : state.strongholdChunks) {
             if (stronghold[0] != targetChunkX || stronghold[1] != targetChunkZ) {
                 continue;
             }
 
-            final Random mapRandom = structureRandom(seed, targetChunkX, targetChunkZ, mapSeedX, mapSeedZ);
-            mapRandom.nextInt(); // MapGenStructure.recursiveGenerate()
-            final StructureStrongholdStart start =
-                    new StructureStrongholdStart(world, mapRandom, targetChunkX, targetChunkZ);
-            if (start.getBoundingBox() != null && start.getBoundingBox().intersectsWith(chunkBox)) {
-                start.generateStructure(world, populationRandom, chunkBox);
+            final long key = chunkKey(targetChunkX, targetChunkZ);
+            StructureStart start = state.strongholds.get(key);
+            if (start == null) {
+                final Random mapRandom = structureRandom(state, targetChunkX, targetChunkZ);
+                mapRandom.nextInt();
+                start = new StructureStrongholdStart(world, mapRandom, targetChunkX, targetChunkZ);
+                final StructureStart existing = state.strongholds.putIfAbsent(key, start);
+                if (existing != null) {
+                    start = existing;
+                }
+            }
+
+            if (start.isSizeableStructure()
+                    && start.getBoundingBox() != null
+                    && start.getBoundingBox().intersectsWith(chunkBox)) {
+                synchronized (start) {
+                    start.generateStructure(world, populationRandom, chunkBox);
+                }
             }
         }
 
@@ -88,12 +117,41 @@ public final class V125StructureGenerator {
 
     public boolean hasVillageStart(final long seed, final int chunkX, final int chunkZ,
                                    final V125BiomeSource biomes) {
-        return isVillageStart(seed, chunkX, chunkZ, biomes);
+        final StructureState state = this.worlds.computeIfAbsent(seed, StructureState::new);
+        final long key = chunkKey(chunkX, chunkZ);
+        if (!state.checkedVillages.contains(key)) {
+            return isVillageStart(seed, chunkX, chunkZ, biomes);
+        }
+        final StructureStart start = state.villages.get(key);
+        return start != null && start.isSizeableStructure();
     }
 
-    private static Random structureRandom(final long seed, final int chunkX, final int chunkZ,
-                                          final long mapSeedX, final long mapSeedZ) {
-        return new Random((long)chunkX * mapSeedX ^ (long)chunkZ * mapSeedZ ^ seed);
+    private static final class StructureState {
+        final long seed;
+        final long mapSeedX;
+        final long mapSeedZ;
+        final Map<Long, StructureStart> mineshafts = new ConcurrentHashMap<>();
+        final Map<Long, StructureStart> villages = new ConcurrentHashMap<>();
+        final Map<Long, StructureStart> strongholds = new ConcurrentHashMap<>();
+        final Set<Long> checkedMineshafts = ConcurrentHashMap.newKeySet();
+        final Set<Long> checkedVillages = ConcurrentHashMap.newKeySet();
+        final int[][] strongholdChunks;
+
+        StructureState(final long seed) {
+            this.seed = seed;
+            final Random random = new Random(seed);
+            this.mapSeedX = random.nextLong();
+            this.mapSeedZ = random.nextLong();
+            this.strongholdChunks = strongholdChunks(seed, new V125BiomeSource());
+        }
+    }
+
+    private static long chunkKey(final int x, final int z) {
+        return ((long)x << 32) ^ (z & 0xFFFFFFFFL);
+    }
+
+    private static Random structureRandom(final StructureState state, final int chunkX, final int chunkZ) {
+        return new Random((long)chunkX * state.mapSeedX ^ (long)chunkZ * state.mapSeedZ ^ state.seed);
     }
 
     private static boolean isVillageStart(final long seed, final int chunkX, final int chunkZ,
@@ -117,12 +175,10 @@ public final class V125StructureGenerator {
 
         final int candidateX = regionX * regionSize + random.nextInt(regionSize - offset);
         final int candidateZ = regionZ * regionSize + random.nextInt(regionSize - offset);
-        if (chunkX != candidateX || chunkZ != candidateZ) {
-            return false;
-        }
+        if (chunkX != candidateX || chunkZ != candidateZ) return false;
 
-        final int biome = biomes.getBiomeIds(seed, chunkX * 4 + 2, chunkZ * 4 + 2, 1, 1)[0];
-        return biome == 1 || biome == 2;
+        return biomes.areBiomesViable(seed, chunkX * 16 + 8, chunkZ * 16 + 8, 0,
+                new int[]{1, 2});
     }
 
     private static int[][] strongholdChunks(final long seed, final V125BiomeSource biomes) {
