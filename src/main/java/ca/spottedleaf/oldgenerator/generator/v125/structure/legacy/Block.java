@@ -80,6 +80,9 @@ public final class Block {
     public static final Block stairsNetherBrick = b(114, Material.NETHER_BRICK_STAIRS);
     public static final Block stairsStoneBrickSmooth = b(109, Material.STONE_BRICK_STAIRS);
     public static final Block stoneBrick = b(98, Material.STONE_BRICKS);
+    public static final Block cobblestoneMossy = b(48, Material.MOSSY_COBBLESTONE);
+    public static final Block blockClay = b(82, Material.CLAY);
+    public static final Block mushroomCapBrown = b(99, Material.BROWN_MUSHROOM_BLOCK);
     public static final Block endPortalFrame = b(120, Material.END_PORTAL_FRAME);
     public static final Block silverfish = b(97, Material.INFESTED_STONE);
     public static final Block waterlily = b(111, Material.LILY_PAD);
