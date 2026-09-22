@@ -4,6 +4,7 @@ import ca.spottedleaf.oldgenerator.generator.b173.populator.*;
 import ca.spottedleaf.oldgenerator.generator.v125.noise.NoiseGeneratorOctaves125;
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Caves;
 import ca.spottedleaf.oldgenerator.generator.v125.map.V125Ravine;
+import ca.spottedleaf.oldgenerator.generator.v125.structure.V125StructureGenerator;
 import ca.spottedleaf.oldgenerator.util.BlockConstants;
 import ca.spottedleaf.oldgenerator.world.BlockAccess;
 import ca.spottedleaf.oldgenerator.world.WorldBlockAccess;
@@ -158,6 +159,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         this.applySurface(data, biomes, seed, chunkX, chunkZ);
         new V125Caves(seed).generate(chunkX, chunkZ, data, this.biomeSource);
         new V125Ravine(seed).generate(chunkX, chunkZ, data, this.biomeSource);
+        new V125StructureGenerator().generate(seed, chunkX, chunkZ, data, this.biomeSource);
         return data;
     }
 
@@ -369,19 +371,20 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         final BlockAccess access = new WorldBlockAccess(world, 0, 127);
         final int[] centerBiome = this.biomeSource.getBlockBiomeIds(world.getSeed(), blockX + 16, blockZ + 16, 1, 1);
         final int biomeId = centerBiome[0];
+        final boolean hasVillage = new V125StructureGenerator().hasVillageStart(world.getSeed(), chunkX, chunkZ, this.biomeSource);
 
         // MapGenStructure#generateStructuresInChunk runs first in vanilla.
         // Until the piece generators are ported, structure generation is disabled
         // at this stage rather than silently changing the population RNG order.
 
-        if (random.nextInt(4) == 0) {
+        if (!hasVillage && random.nextInt(4) == 0) {
             final int x = blockX + random.nextInt(16) + 8;
             final int y = random.nextInt(128);
             final int z = blockZ + random.nextInt(16) + 8;
             new WorldGenLakes173(BlockConstants.SOURCE_WATER).populate(access, random, x, y, z);
         }
 
-        if (random.nextInt(8) == 0) {
+        if (!hasVillage && random.nextInt(8) == 0) {
             final int x = blockX + random.nextInt(16) + 8;
             final int y = random.nextInt(random.nextInt(120) + 8);
             final int z = blockZ + random.nextInt(16) + 8;
