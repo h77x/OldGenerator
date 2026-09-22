@@ -53,6 +53,7 @@ public final class Block {
     public static final Block oreLapis = b(21, Material.LAPIS_ORE);
     public static final Block oreDiamond = b(56, Material.DIAMOND_ORE);
     public static final Block oreRedstone = b(73, Material.REDSTONE_ORE);
+    public static final Block redstone = oreRedstone;
     public static final Block blockLapis = b(22, Material.LAPIS_BLOCK);
     public static final Block sandStone = b(24, Material.SANDSTONE);
     public static final Block bed = b(26, Material.RED_BED);
