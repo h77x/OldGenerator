@@ -111,7 +111,17 @@ public final class Block {
         return this == wood || this == planks;
     }
     public boolean canPlaceBlockOnSide(final World world, final int x, final int y, final int z, final int side) {
-        return true;
+        final int id;
+        switch (side) {
+            case 1: id = world.getBlockId(x, y + 1, z); break;
+            case 2: id = world.getBlockId(x, y, z + 1); break;
+            case 3: id = world.getBlockId(x, y, z - 1); break;
+            case 4: id = world.getBlockId(x + 1, y, z); break;
+            case 5: id = world.getBlockId(x - 1, y, z); break;
+            default: return false;
+        }
+        return id != 0 && id < blocksList.length && blocksList[id] != null
+                && blocksList[id].blockMaterial.isSolid();
     }
 
     public static final class BlockMaterial {
