@@ -18,6 +18,15 @@ public final class V125BiomeSource {
         return state.biomeLayer.getInts(x, z, width, height);
     }
 
+    public int[] getBlockBiomeIds(final long seed, final int x, final int z, final int width, final int height) {
+        State state = this.states.get();
+        if (state == null || state.seed != seed) {
+            state = new State(seed);
+            this.states.set(state);
+        }
+        return state.blockBiomeLayer.getInts(x, z, width, height);
+    }
+
     public V125BiomeData getBiomeData(final int id) {
         return V125BiomeData.of(id);
     }
@@ -34,6 +43,7 @@ public final class V125BiomeSource {
     private static final class State {
         final long seed;
         final GenLayer125 biomeLayer;
+        final GenLayer125 blockBiomeLayer;
         State(final long seed) {
             this.seed=seed;
 
@@ -69,7 +79,8 @@ public final class V125BiomeSource {
             }
             biome=new Smooth125(1000L,biome);
             this.biomeLayer=new RiverMix125(100L,biome,river);
-            this.biomeLayer.initWorldGenSeed(seed);
+            this.blockBiomeLayer=new VoronoiZoom125(10L,this.biomeLayer);
+            this.blockBiomeLayer.initWorldGenSeed(seed);
         }
     }
 
