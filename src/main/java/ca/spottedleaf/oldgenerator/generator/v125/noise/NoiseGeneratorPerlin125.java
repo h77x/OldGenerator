@@ -151,22 +151,31 @@ public final class NoiseGeneratorPerlin125 {
 
                     if (iy == 0 || permY != lastYPermutation) {
                         lastYPermutation = permY;
+                        // Match the 1.2.5 lookup order exactly:
+                        // permutation[x] -> +y -> permutation[...] -> +z.
+                        // The previous implementation incorrectly added y and z
+                        // before the second permutation lookup, producing indices
+                        // above 511 and crashing during terrain generation.
                         final int p00 = this.permutation[permX] + permY;
                         final int p10 = this.permutation[permX + 1] + permY;
+                        final int y00 = this.permutation[p00] + permZ;
+                        final int y10 = this.permutation[p10] + permZ;
+                        final int y01 = this.permutation[p00 + 1] + permZ;
+                        final int y11 = this.permutation[p10 + 1] + permZ;
 
                         x0 = lerp(fadeX,
-                                grad3(this.permutation[p00 + permZ], fracX, fracY, fracZ),
-                                grad3(this.permutation[p10 + permZ], fracX - 1.0D, fracY, fracZ));
+                                grad3(this.permutation[y00], fracX, fracY, fracZ),
+                                grad3(this.permutation[y10], fracX - 1.0D, fracY, fracZ));
                         x1 = lerp(fadeX,
-                                grad3(this.permutation[p00 + permZ + 1], fracX, fracY, fracZ - 1.0D),
-                                grad3(this.permutation[p10 + permZ + 1], fracX - 1.0D, fracY, fracZ - 1.0D));
+                                grad3(this.permutation[y01], fracX, fracY, fracZ - 1.0D),
+                                grad3(this.permutation[y11], fracX - 1.0D, fracY, fracZ - 1.0D));
 
                         z0 = lerp(fadeX,
-                                grad3(this.permutation[p00 + 1 + permZ], fracX, fracY - 1.0D, fracZ),
-                                grad3(this.permutation[p10 + 1 + permZ], fracX - 1.0D, fracY - 1.0D, fracZ));
+                                grad3(this.permutation[y00 + 1], fracX, fracY - 1.0D, fracZ),
+                                grad3(this.permutation[y10 + 1], fracX - 1.0D, fracY - 1.0D, fracZ));
                         z1 = lerp(fadeX,
-                                grad3(this.permutation[p00 + 1 + permZ + 1], fracX, fracY - 1.0D, fracZ - 1.0D),
-                                grad3(this.permutation[p10 + 1 + permZ + 1], fracX - 1.0D, fracY - 1.0D, fracZ - 1.0D));
+                                grad3(this.permutation[y01 + 1], fracX, fracY - 1.0D, fracZ - 1.0D),
+                                grad3(this.permutation[y11 + 1], fracX - 1.0D, fracY - 1.0D, fracZ - 1.0D));
                     }
 
                     final double y0 = lerp(fadeY, x0, z0);
