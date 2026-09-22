@@ -104,6 +104,12 @@ public final class Block {
     public boolean canBeReplacedByLeaves(final World world, final int x, final int y, final int z) {
         return this == air || this == leaves || this == vine || this == waterMoving || this == waterStill;
     }
+    public boolean isWood(final World world, final int x, final int y, final int z) {
+        return this == wood || this == planks;
+    }
+    public boolean canPlaceBlockOnSide(final World world, final int x, final int y, final int z, final int side) {
+        return true;
+    }
 
     public static final class BlockMaterial {
         private final boolean solid;
