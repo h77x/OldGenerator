@@ -7,6 +7,7 @@ import ca.spottedleaf.oldgenerator.generator.v125.populate.*;
 import ca.spottedleaf.oldgenerator.generator.v125.populate.legacy.*;
 import ca.spottedleaf.oldgenerator.generator.v125.tree.*;
 import ca.spottedleaf.oldgenerator.generator.v125.structure.V125StructureGenerator;
+import ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.Block;
 import org.bukkit.generator.BlockPopulator;
 import java.util.Collections;
 import java.util.List;
