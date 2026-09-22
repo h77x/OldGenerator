@@ -423,7 +423,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         int treeAttempts=trees+(random.nextInt(10)==0?1:0);
         for(int i=0;i<treeAttempts;i++){
             int x=baseX+random.nextInt(16)+8,z=baseZ+random.nextInt(16)+8;
-            new WorldGenTrees173(false).populate(access,random,x,world.getHighestBlockYAt(x,z),z);
+            new WorldGenTrees173().populate(access,random,x,world.getHighestBlockYAt(x,z),z);
         }
         for(int i=0;i<flowers;i++){
             int x=baseX+random.nextInt(16)+8,y=random.nextInt(256),z=baseZ+random.nextInt(16)+8;
