@@ -82,16 +82,15 @@ public final class V125StructureGenerator {
         }
 
         for (final int[] stronghold : state.strongholdChunks) {
-            if (stronghold[0] != targetChunkX || stronghold[1] != targetChunkZ) {
-                continue;
-            }
+            final int startChunkX = stronghold[0];
+            final int startChunkZ = stronghold[1];
+            final long key = chunkKey(startChunkX, startChunkZ);
 
-            final long key = chunkKey(targetChunkX, targetChunkZ);
             StructureStart start = state.strongholds.get(key);
             if (start == null) {
-                final Random mapRandom = structureRandom(state, targetChunkX, targetChunkZ);
-                mapRandom.nextInt();
-                start = new StructureStrongholdStart(world, mapRandom, targetChunkX, targetChunkZ);
+                final Random mapRandom = structureRandom(state, startChunkX, startChunkZ);
+                mapRandom.nextInt(); // MapGenStructure.recursiveGenerate()
+                start = new StructureStrongholdStart(world, mapRandom, startChunkX, startChunkZ);
                 final StructureStart existing = state.strongholds.putIfAbsent(key, start);
                 if (existing != null) {
                     start = existing;
