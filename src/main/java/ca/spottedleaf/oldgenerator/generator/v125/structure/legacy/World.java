@@ -406,7 +406,9 @@ public final class World {
         if (biome == null || biomeTemperature(biome.biomeID) > 0.15F) return false;
         if (y < access.getMinHeight() || y > access.getMaxHeight()) return false;
         final int id = getBlockId(x, y, z);
+        if (getSavedLightValue(EnumSkyBlock.Block, x, y, z) >= 10) return false;
         if (id != Block.waterStill.blockID && id != Block.waterMoving.blockID) return false;
+        if (getBlockMetadata(x, y, z) != 0) return false;
         if (!natural) return true;
 
         return getBlockMaterial(x - 1, y, z) != Material.water
@@ -419,6 +421,7 @@ public final class World {
         final BiomeGenBase biome = getBiomeGenForCoords(x, z);
         if (biome == null || biomeTemperature(biome.biomeID) > 0.15F) return false;
         if (y < access.getMinHeight() || y > access.getMaxHeight()) return false;
+        if (getSavedLightValue(EnumSkyBlock.Block, x, y, z) >= 10) return false;
         final int below = getBlockId(x, y - 1, z);
         return getBlockId(x, y, z) == Block.air.blockID
                 && below != Block.air.blockID
