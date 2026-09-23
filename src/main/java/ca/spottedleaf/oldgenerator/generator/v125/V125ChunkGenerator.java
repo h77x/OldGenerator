@@ -559,7 +559,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         for (int i = 0; i < treeCount; ++i) {
             final int x = baseX + random.nextInt(16) + 8;
             final int z = baseZ + random.nextInt(16) + 8;
-            final int y = Math.min(127, world.getHighestBlockYAt(x, z));
+            final int y = Math.min(127, legacyWorld.getHeightValue(x, z));
             generateTree(legacyWorld, random, biomeId, x, y, z);
         }
 
@@ -664,7 +664,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         if ((biomeId == 2 || biomeId == 17) && random.nextInt(1000) == 0) {
             final int x = baseX + random.nextInt(16) + 8;
             final int z = baseZ + random.nextInt(16) + 8;
-            new WorldGenDesertWells().generate(legacyWorld, random, x, Math.min(127, world.getHighestBlockYAt(x, z) + 1), z);
+            new WorldGenDesertWells().generate(legacyWorld, random, x, Math.min(127, legacyWorld.getHeightValue(x, z) + 1), z);
         }
     }
 
