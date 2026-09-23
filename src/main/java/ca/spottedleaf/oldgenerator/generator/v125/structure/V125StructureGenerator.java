@@ -90,7 +90,15 @@ public final class V125StructureGenerator {
             if (start == null) {
                 final Random mapRandom = structureRandom(state, startChunkX, startChunkZ);
                 mapRandom.nextInt(); // MapGenStructure.recursiveGenerate()
-                start = new StructureStrongholdStart(world, mapRandom, startChunkX, startChunkZ);
+
+                StructureStrongholdStart strongholdStart;
+                do {
+                    strongholdStart = new StructureStrongholdStart(world, mapRandom, startChunkX, startChunkZ);
+                } while (strongholdStart.getComponents().isEmpty()
+                        || !(strongholdStart.getComponents().get(0) instanceof ComponentStrongholdStairs2 stairs)
+                        || stairs.portalRoom == null);
+
+                start = strongholdStart;
                 final StructureStart existing = state.strongholds.putIfAbsent(key, start);
                 if (existing != null) {
                     start = existing;
