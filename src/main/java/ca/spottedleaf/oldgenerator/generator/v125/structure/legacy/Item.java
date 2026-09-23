@@ -37,6 +37,21 @@ public final class Item {
     public static final Item record13=register(2256);
     public static final Item recordCat=register(2257);
 
+    /*
+     * Minecraft 1.2.5 exposes ItemBlock instances through Item.itemsList using
+     * the legacy block ID. StructurePieceTreasure intentionally accepts either
+     * an item ID or a block ID (for example, mineshaft rail loot uses ID 66).
+     * Register the block items represented by our legacy Block table so those
+     * IDs have the same non-null Item lookup expected by the vanilla loot code.
+     */
+    static {
+        for (int id = 1; id < Block.blocksList.length; ++id) {
+            if (Block.blocksList[id] != null && itemsList[id] == null) {
+                register(id);
+            }
+        }
+    }
+
     private Item(){this(-1);}
     public int getItemStackLimit(){return 64;}
 }
