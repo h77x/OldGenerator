@@ -447,7 +447,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         }
 
         decorateBiome(legacyWorld, access, random, biomeId, blockX, blockZ);
-        freezeAndSnow(access, biomeId, blockX, blockZ);
+        freezeAndSnow(legacyWorld, blockX, blockZ);
     }
 
     private void generateOres(final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World world,
