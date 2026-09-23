@@ -436,10 +436,9 @@ public final class World {
             default: return 0.8F;
         }
     }
+    public int getBlockMetadata(final int x, final int y, final int z) { return 0; }
     public void notifyBlocksOfNeighborChange(int x,int y,int z,int id){}
     public static final class WorldProvider { public int getAverageGroundLevel(){return 64;} }
-}    public int getBlockMetadata(final int x, final int y, final int z) {
-        return 0;
-    }
+}
 
 
