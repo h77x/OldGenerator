@@ -26,6 +26,8 @@ public final class World {
     private final WorldChunkManager manager;
     private final Map<Long, TileEntityChest> chests = new HashMap<>();
     private final Map<Long, TileEntityMobSpawner> spawners = new HashMap<>();
+    private final Map<Long, Integer> legacyIds = new HashMap<>();
+    private final Map<Long, Integer> legacyMetadata = new HashMap<>();
 
     public World(final long seed, final BlockAccess access, final V125BiomeSource source){
         this.seed=seed;this.access=access;this.manager=new WorldChunkManager(source,seed);
@@ -34,6 +36,9 @@ public final class World {
     public long getSeed(){return seed;}
     public WorldChunkManager getWorldChunkManager(){return manager;}
     public int getBlockId(int x,int y,int z){
+        final long key = blockKey(x, y, z);
+        final Integer stored = legacyIds.get(key);
+        if (stored != null) return stored;
         final org.bukkit.Material m=access.getType(x,y,z);
         if (m == org.bukkit.Material.WATER) return Block.waterStill.blockID;
         if (m == org.bukkit.Material.LAVA) return Block.lavaStill.blockID;
@@ -169,6 +174,15 @@ public final class World {
         }
 
         final org.bukkit.Material material = modernMaterial(id, meta, block.material);
+        final long key = blockKey(x, y, z);
+        if (id == Block.air.blockID) {
+            legacyIds.remove(key);
+            legacyMetadata.remove(key);
+        } else {
+            legacyIds.put(key, id);
+            legacyMetadata.put(key, meta);
+        }
+
         final BlockData data = createBlockData(id, meta, material);
         if (data != null) {
             access.setBlockData(x, y, z, data, false);
@@ -436,7 +450,45 @@ public final class World {
             default: return 0.8F;
         }
     }
-    public int getBlockMetadata(final int x, final int y, final int z) { return 0; }
+    public int getBlockMetadata(final int x, final int y, final int z) {
+        final Integer stored = legacyMetadata.get(blockKey(x, y, z));
+        return stored == null ? inferMetadata(x, y, z, getBlockId(x, y, z)) : stored;
+    }
+
+    private int inferMetadata(final int x, final int y, final int z, final int id) {
+        try {
+            final org.bukkit.block.data.BlockData data = access.getBlockData(x, y, z);
+            if (id == Block.wood.blockID && data instanceof Orientable orientable) {
+                return switch (orientable.getAxis()) {
+                    case X -> 4;
+                    case Z -> 8;
+                    default -> 0;
+                };
+            }
+            if (id == Block.leaves.blockID || id == Block.planks.blockID || id == Block.sapling.blockID) {
+                final org.bukkit.Material material = access.getType(x, y, z);
+                if (material.name().startsWith("SPRUCE_")) return 1;
+                if (material.name().startsWith("BIRCH_")) return 2;
+                if (material.name().startsWith("JUNGLE_")) return 3;
+            }
+            if ((id == Block.doorWood.blockID || id == Block.doorSteel.blockID)
+                    && data instanceof Door door) {
+                if (door.getHalf() == Bisected.Half.TOP) {
+                    return 8 | (door.getHinge() == Door.Hinge.RIGHT ? 1 : 0);
+                }
+                int value = switch (door.getFacing()) {
+                    case EAST -> 0;
+                    case SOUTH -> 1;
+                    case WEST -> 2;
+                    default -> 3;
+                };
+                if (door.isOpen()) value |= 4;
+                return value;
+            }
+        } catch (Throwable ignored) {
+        }
+        return 0;
+    }
     public void notifyBlocksOfNeighborChange(int x,int y,int z,int id){}
     public static final class WorldProvider { public int getAverageGroundLevel(){return 64;} }
 }
