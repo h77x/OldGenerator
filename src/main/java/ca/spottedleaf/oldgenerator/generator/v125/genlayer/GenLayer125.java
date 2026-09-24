@@ -8,12 +8,9 @@ public abstract class GenLayer125 {
 
     protected GenLayer125(final long seed) {
         long s = seed;
-        s = s * s * 6364136223846793005L + 1442695040888963407L;
-        s += seed;
-        s = s * s * 6364136223846793005L + 1442695040888963407L;
-        s += seed;
-        s = s * s * 6364136223846793005L + 1442695040888963407L;
-        s += seed;
+        s = s * (s * 6364136223846793005L + 1442695040888963407L) + seed;
+        s = s * (s * 6364136223846793005L + 1442695040888963407L) + seed;
+        s = s * (s * 6364136223846793005L + 1442695040888963407L) + seed;
         this.baseSeed = s;
     }
 
@@ -22,17 +19,17 @@ public abstract class GenLayer125 {
         if (this.parent != null) {
             this.parent.initWorldGenSeed(seed);
         }
-        this.worldGenSeed = this.worldGenSeed * this.worldGenSeed * 6364136223846793005L + 1442695040888963407L + this.baseSeed;
-        this.worldGenSeed = this.worldGenSeed * this.worldGenSeed * 6364136223846793005L + 1442695040888963407L + this.baseSeed;
-        this.worldGenSeed = this.worldGenSeed * this.worldGenSeed * 6364136223846793005L + 1442695040888963407L + this.baseSeed;
+        this.worldGenSeed = this.worldGenSeed * (this.worldGenSeed * 6364136223846793005L + 1442695040888963407L) + this.baseSeed;
+        this.worldGenSeed = this.worldGenSeed * (this.worldGenSeed * 6364136223846793005L + 1442695040888963407L) + this.baseSeed;
+        this.worldGenSeed = this.worldGenSeed * (this.worldGenSeed * 6364136223846793005L + 1442695040888963407L) + this.baseSeed;
     }
 
     protected final void initChunkSeed(final long x, final long z) {
         this.chunkSeed = this.worldGenSeed;
-        this.chunkSeed = this.chunkSeed * this.chunkSeed * 6364136223846793005L + 1442695040888963407L + x;
-        this.chunkSeed = this.chunkSeed * this.chunkSeed * 6364136223846793005L + 1442695040888963407L + z;
-        this.chunkSeed = this.chunkSeed * this.chunkSeed * 6364136223846793005L + 1442695040888963407L + x;
-        this.chunkSeed = this.chunkSeed * this.chunkSeed * 6364136223846793005L + 1442695040888963407L + z;
+        this.chunkSeed = this.chunkSeed * (this.chunkSeed * 6364136223846793005L + 1442695040888963407L) + x;
+        this.chunkSeed = this.chunkSeed * (this.chunkSeed * 6364136223846793005L + 1442695040888963407L) + z;
+        this.chunkSeed = this.chunkSeed * (this.chunkSeed * 6364136223846793005L + 1442695040888963407L) + x;
+        this.chunkSeed = this.chunkSeed * (this.chunkSeed * 6364136223846793005L + 1442695040888963407L) + z;
     }
 
     protected final int nextInt(final int bound) {
@@ -40,7 +37,7 @@ public abstract class GenLayer125 {
         if (value < 0) {
             value += bound;
         }
-        this.chunkSeed = this.chunkSeed * this.chunkSeed * 6364136223846793005L + 1442695040888963407L + this.worldGenSeed;
+        this.chunkSeed = this.chunkSeed * (this.chunkSeed * 6364136223846793005L + 1442695040888963407L) + this.worldGenSeed;
         return value;
     }
 
