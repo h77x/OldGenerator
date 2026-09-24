@@ -3,7 +3,7 @@ OldGenerator
 
 A standalone Paper plugin that reproduces the **Minecraft 1.2.5 Overworld world generator** on modern servers.
 
-The plugin does not run an old Minecraft server jar. The generator is implemented directly against the historical 1.2.5 algorithms and adapted to the modern Paper/Bukkit generation API.
+The plugin does not run an old Minecraft server jar. The generator is implemented directly from the historical 1.2.5 generation algorithms and adapted to the modern Paper/Bukkit generation API.
 
 ## Generator
 
@@ -11,27 +11,28 @@ The plugin does not run an old Minecraft server jar. The generator is implemente
 | --- | --- |
 | `1.2.5` | Minecraft 1.2.5 Overworld |
 
-This is intentionally the only supported generator ID. Beta 1.7.3, Beta Skylands, Nether, and other historical generator modes have been removed from the plugin.
+This is the only supported generator ID. Older experimental generator modes and non-Overworld targets are no longer part of this project.
 
 ### Minecraft 1.2.5 implementation
 
 The current implementation includes:
 
 - 128-block historical world height (Y 0–127).
-- Source-faithful 1.2.5 Perlin/octave noise construction and Java `Random` seeding.
+- Source-faithful 1.2.5 Java `Random` seeding and Perlin/octave noise.
 - 5×17×5 density field with the original 4×4×8 interpolation.
-- Historical sea level at Y=63 and biome-weighted terrain density.
-- 1.2.5 GenLayer biome generation, RiverMix, and final Voronoi block-biome selection.
+- Historical sea level at Y=63 and 1.2.5 biome terrain parameters.
+- The 1.2.5 GenLayer chain, RiverMix, and final Voronoi biome selection.
 - 1.2.5 caves and ravines.
-- Historical chunk population seed behavior and decorator ordering.
-- Ores, sand/clay patches, lakes, dungeons, trees, flowers, grass, mushrooms,
-  reeds, pumpkins, cacti, liquid springs, and cold-biome ice/snow handling.
-- Deterministic 1.2.5-style mineshaft, village, and stronghold start placement.
-- Modern Paper `ChunkGenerator.ChunkData` integration and a dedicated 1.2.5 population listener.
+- Historical chunk population seeding and decorator ordering.
+- Source-derived 1.2.5 population generators for ores, sand/clay, lakes, dungeons, trees, flowers, grass, mushrooms, reeds, pumpkins, cacti, liquid springs, desert wells, and cold-biome ice/snow.
+- Source-derived 1.2.5 mineshaft, village, and stronghold structure components and placement rules.
+- Legacy block IDs, metadata, loot, chests, spawners, and structure state bridged into modern Paper/Bukkit block data and tile state.
+- Modern Paper `ChunkGenerator.ChunkData` integration.
+- Population through Paper's `BlockPopulator` lifecycle using a `LimitedRegion` bridge.
 
-Structure **piece layouts are not yet byte-for-byte 1.2.5 ports**. The current structure bridge reproduces the historical placement rules and deterministic locations, then uses compact modern Bukkit implementations for the generated pieces. Full component-level parity for mineshafts, villages, and strongholds remains the final structure-generation milestone.
+Recent correctness fixes include the vanilla 1.2.5 GenLayer seed LCG recurrence and Perlin noise corner lookups. The project also preserves the historical height semantics used by vegetation and structure generation.
 
-The 1.2.5 generator is still **development/experimental** and should be validated against reference worlds before being treated as a finished parity implementation.
+The implementation is **development/experimental** until it has been runtime-differentially tested against a trusted Minecraft 1.2.5 reference. The source-level structure and terrain algorithms are substantially ported, but source matching alone is not a claim of byte-for-byte or chunk-for-chunk output parity.
 
 ## Usage
 
@@ -42,6 +43,8 @@ worlds:
   oldworld:
     generator: OldGenerator:1.2.5
 ```
+
+The generator is intended for modern Paper servers supporting the plugin's declared API version.
 
 ## Development
 
