@@ -94,9 +94,9 @@ public final class NoiseGeneratorPerlin125 {
                     final double fadeZ = fracZ * fracZ * fracZ * (fracZ * (fracZ * 6.0D - 15.0D) + 10.0D);
 
                     final int a = this.permutation[permX];
-                    final int aa = this.permutation[a + permZ];
+                    final int aa = this.permutation[a] + permZ;
                     final int b = this.permutation[permX + 1];
-                    final int ba = this.permutation[b + permZ];
+                    final int ba = this.permutation[b] + permZ;
 
                     final double x0 = lerp(fadeX,
                             grad3(this.permutation[aa], fracX, 0.0D, fracZ),
@@ -167,12 +167,12 @@ public final class NoiseGeneratorPerlin125 {
                                 grad3(this.permutation[y00], fracX, fracY, fracZ),
                                 grad3(this.permutation[y10], fracX - 1.0D, fracY, fracZ));
                         x1 = lerp(fadeX,
-                                grad3(this.permutation[y01], fracX, fracY, fracZ - 1.0D),
-                                grad3(this.permutation[y11], fracX - 1.0D, fracY, fracZ - 1.0D));
+                                grad3(this.permutation[y00 + 1], fracX, fracY, fracZ - 1.0D),
+                                grad3(this.permutation[y10 + 1], fracX - 1.0D, fracY, fracZ - 1.0D));
 
                         z0 = lerp(fadeX,
-                                grad3(this.permutation[y00 + 1], fracX, fracY - 1.0D, fracZ),
-                                grad3(this.permutation[y10 + 1], fracX - 1.0D, fracY - 1.0D, fracZ));
+                                grad3(this.permutation[y01], fracX, fracY - 1.0D, fracZ),
+                                grad3(this.permutation[y11], fracX - 1.0D, fracY - 1.0D, fracZ));
                         z1 = lerp(fadeX,
                                 grad3(this.permutation[y01 + 1], fracX, fracY - 1.0D, fracZ - 1.0D),
                                 grad3(this.permutation[y11 + 1], fracX - 1.0D, fracY - 1.0D, fracZ - 1.0D));
