@@ -1,6 +1,7 @@
 package ca.spottedleaf.oldgenerator;
 
 import ca.spottedleaf.oldgenerator.generator.v125.V125ChunkGenerator;
+import ca.spottedleaf.oldgenerator.generator.v125.structure.V125StructureLocateListener;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.generator.ChunkGenerator;
@@ -19,6 +20,7 @@ public final class OldGenerator extends JavaPlugin {
     @Override
     public void onEnable() {
         this.setupMetrics();
+        this.getServer().getPluginManager().registerEvents(new V125StructureLocateListener(), this);
     }
 
     @Override
