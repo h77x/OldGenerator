@@ -59,7 +59,7 @@
                         <relocation>
                             <pattern>org.bstats</pattern>
                             <shadedPattern>ca.spottedleaf.oldgenerator.org.bstats</shadedPattern>
-                        </relocations>
+                        </relocation>
                     </relocations>
                 </configuration>
                 <executions>
