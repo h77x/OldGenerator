@@ -35,6 +35,7 @@ public final class World {
     public World(final BlockAccess access){ this.seed=0L; this.access=access; this.manager=null; }
     public long getSeed(){return seed;}
     public WorldChunkManager getWorldChunkManager(){return manager;}
+    public boolean isInRegion(final int x, final int y, final int z){return access.isInRegion(x, y, z);}
     public int getBlockId(int x,int y,int z){
         final long key = blockKey(x, y, z);
         final Integer stored = legacyIds.get(key);
