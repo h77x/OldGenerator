@@ -220,25 +220,8 @@ public final class V125StructureGenerator {
     }
 
     private static boolean isMineshaftStart(final StructureState state, final int chunkX, final int chunkZ) {
-        synchronized (state) {
-            final long key = chunkKey(chunkX, chunkZ);
-            final StructureStart existing = state.mineshafts.get(key);
-            if (existing != null) return true;
-            if (!state.checkedMineshafts.contains(key)) {
-                final Random random = structureRandom(state, chunkX, chunkZ);
-                random.nextInt();
-                if (!isMineshaftStart(random, chunkX, chunkZ)) {
-                    state.checkedMineshafts.add(key);
-                    return false;
-                }
-            }
-            return isMineshaftStart(new Random(0L), 0, 1) || checkMineshaftWithoutMutation(state, chunkX, chunkZ);
-        }
-    }
-
-    private static boolean checkMineshaftWithoutMutation(final StructureState state, final int chunkX, final int chunkZ) {
         final Random random = structureRandom(state, chunkX, chunkZ);
-        random.nextInt();
+        random.nextInt(); // MapGenStructure.recursiveGenerate()
         return isMineshaftStart(random, chunkX, chunkZ);
     }
 
