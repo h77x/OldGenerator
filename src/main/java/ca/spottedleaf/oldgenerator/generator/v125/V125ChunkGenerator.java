@@ -583,7 +583,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         for (int i = 0; i < bigMushrooms; ++i) {
             final int x = baseX + random.nextInt(16) + 8;
             final int z = baseZ + random.nextInt(16) + 8;
-            if (!world.isInRegion(x, world.getMinHeight(), z)) continue;
+            if (!world.isInRegion(x, 0, z)) continue;
             final int y = Math.min(127, world.getHighestBlockYAt(x, z));
             new WorldGenBigMushroom().generate(legacyWorld, random, x, y, z);
         }
@@ -628,7 +628,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             if (random.nextInt(4) == 0) {
                 final int x = baseX + random.nextInt(16) + 8;
                 final int z = baseZ + random.nextInt(16) + 8;
-                if (!world.isInRegion(x, world.getMinHeight(), z)) continue;
+                if (!world.isInRegion(x, 0, z)) continue;
                 final int y = Math.min(127, world.getHighestBlockYAt(x, z));
                 new WorldGenFlowers(Block.mushroomBrown.blockID).generate(legacyWorld, random, x, y, z);
             }
@@ -683,7 +683,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         if ((biomeId == 2 || biomeId == 17) && random.nextInt(1000) == 0) {
             final int x = baseX + random.nextInt(16) + 8;
             final int z = baseZ + random.nextInt(16) + 8;
-            if (world.isInRegion(x, world.getMinHeight(), z)) {
+            if (world.isInRegion(x, 0, z)) {
                 new WorldGenDesertWells().generate(legacyWorld, random, x, Math.min(127, legacyWorld.getHeightValue(x, z) + 1), z);
             }
         }
@@ -693,7 +693,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
                                           final int baseX, final int baseZ, final int radius) {
         final int x = baseX + random.nextInt(16) + 8;
         final int z = baseZ + random.nextInt(16) + 8;
-        if (!world.isInRegion(x, world.getMinHeight(), z)) return;
+        if (!world.isInRegion(x, 0, z)) return;
         final int y = Math.min(127, world.getTopSolidOrLiquidBlock(x, z));
         new WorldGenSand(radius, Block.sand.blockID).generate(world, random, x, y, z);
     }
@@ -702,7 +702,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
                                           final int baseX, final int baseZ) {
         final int x = baseX + random.nextInt(16) + 8;
         final int z = baseZ + random.nextInt(16) + 8;
-        if (!world.isInRegion(x, world.getMinHeight(), z)) return;
+        if (!world.isInRegion(x, 0, z)) return;
         final int y = Math.min(127, world.getTopSolidOrLiquidBlock(x, z));
         new WorldGenClay(4).generate(world, random, x, y, z);
     }
