@@ -35,16 +35,17 @@ public final class V125StructureGenerator {
         for (int cx = targetChunkX - MAP_RANGE; cx <= targetChunkX + MAP_RANGE; ++cx) {
             for (int cz = targetChunkZ - MAP_RANGE; cz <= targetChunkZ + MAP_RANGE; ++cz) {
                 final long key = chunkKey(cx, cz);
-                StructureStart start = state.mineshafts.get(key);
+                StructureStart start;
+                synchronized (state) {
+                    start = state.mineshafts.get(key);
+                    if (start == null && state.checkedMineshafts.add(key)) {
+                        final Random mapRandom = structureRandom(state, cx, cz);
+                        mapRandom.nextInt();
 
-                if (start == null && state.checkedMineshafts.add(key)) {
-                    final Random mapRandom = structureRandom(state, cx, cz);
-                    mapRandom.nextInt();
-
-                    if (mapRandom.nextInt(100) == 0
-                            && mapRandom.nextInt(80) < Math.max(Math.abs(cx), Math.abs(cz))) {
-                        start = new StructureMineshaftStart(world, mapRandom, cx, cz);
-                        state.mineshafts.put(key, start);
+                        if (isMineshaftStart(mapRandom, cx, cz)) {
+                            start = new StructureMineshaftStart(world, mapRandom, cx, cz);
+                            state.mineshafts.put(key, start);
+                        }
                     }
                 }
 
@@ -61,13 +62,15 @@ public final class V125StructureGenerator {
         for (int cx = targetChunkX - MAP_RANGE; cx <= targetChunkX + MAP_RANGE; ++cx) {
             for (int cz = targetChunkZ - MAP_RANGE; cz <= targetChunkZ + MAP_RANGE; ++cz) {
                 final long key = chunkKey(cx, cz);
-                StructureStart start = state.villages.get(key);
-
-                if (start == null && state.checkedVillages.add(key) && isVillageStart(seed, cx, cz, biomes)) {
-                    final Random mapRandom = structureRandom(state, cx, cz);
-                    mapRandom.nextInt();
-                    start = new StructureVillageStart(world, mapRandom, cx, cz, 0);
-                    state.villages.put(key, start);
+                StructureStart start;
+                synchronized (state) {
+                    start = state.villages.get(key);
+                    if (start == null && state.checkedVillages.add(key) && isVillageStart(seed, cx, cz, biomes)) {
+                        final Random mapRandom = structureRandom(state, cx, cz);
+                        mapRandom.nextInt();
+                        start = new StructureVillageStart(world, mapRandom, cx, cz, 0);
+                        state.villages.put(key, start);
+                    }
                 }
 
                 if (start != null && start.isSizeableStructure()
@@ -86,22 +89,22 @@ public final class V125StructureGenerator {
             final int startChunkZ = stronghold[1];
             final long key = chunkKey(startChunkX, startChunkZ);
 
-            StructureStart start = state.strongholds.get(key);
-            if (start == null) {
-                final Random mapRandom = structureRandom(state, startChunkX, startChunkZ);
-                mapRandom.nextInt(); // MapGenStructure.recursiveGenerate()
+            StructureStart start;
+            synchronized (state) {
+                start = state.strongholds.get(key);
+                if (start == null) {
+                    final Random mapRandom = structureRandom(state, startChunkX, startChunkZ);
+                    mapRandom.nextInt(); // MapGenStructure.recursiveGenerate()
 
-                StructureStrongholdStart strongholdStart;
-                do {
-                    strongholdStart = new StructureStrongholdStart(world, mapRandom, startChunkX, startChunkZ);
-                } while (strongholdStart.getComponents().isEmpty()
-                        || !(strongholdStart.getComponents().get(0) instanceof ComponentStrongholdStairs2 stairs)
-                        || stairs.portalRoom == null);
+                    StructureStrongholdStart strongholdStart;
+                    do {
+                        strongholdStart = new StructureStrongholdStart(world, mapRandom, startChunkX, startChunkZ);
+                    } while (strongholdStart.getComponents().isEmpty()
+                            || !(strongholdStart.getComponents().get(0) instanceof ComponentStrongholdStairs2 stairs)
+                            || stairs.portalRoom == null);
 
-                start = strongholdStart;
-                final StructureStart existing = state.strongholds.putIfAbsent(key, start);
-                if (existing != null) {
-                    start = existing;
+                    start = strongholdStart;
+                    state.strongholds.put(key, start);
                 }
             }
 
@@ -131,6 +134,127 @@ public final class V125StructureGenerator {
         }
         final StructureStart start = state.villages.get(key);
         return start != null && start.isSizeableStructure();
+    }
+
+    public int[] findNearestMineshaft(final long seed, final int originX, final int originZ, final int radiusChunks) {
+        final StructureState state = this.worlds.computeIfAbsent(seed, StructureState::new);
+        final int originChunkX = Math.floorDiv(originX, 16);
+        final int originChunkZ = Math.floorDiv(originZ, 16);
+        final int radius = Math.max(0, radiusChunks);
+        double bestDistance = Double.POSITIVE_INFINITY;
+        int[] best = null;
+
+        for (int cx = originChunkX - radius; cx <= originChunkX + radius; ++cx) {
+            for (int cz = originChunkZ - radius; cz <= originChunkZ + radius; ++cz) {
+                if (!isMineshaftStart(state, cx, cz)) continue;
+                final double dx = (cx * 16 + 8) - originX;
+                final double dz = (cz * 16 + 8) - originZ;
+                final double distance = dx * dx + dz * dz;
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    best = new int[]{cx, cz};
+                }
+            }
+        }
+        return best;
+    }
+
+    public int[] findNearestVillage(final long seed, final int originX, final int originZ,
+                                    final int radiusChunks, final boolean allowPlains, final boolean allowDesert,
+                                    final V125BiomeSource biomes) {
+        final int originChunkX = Math.floorDiv(originX, 16);
+        final int originChunkZ = Math.floorDiv(originZ, 16);
+        final int radius = Math.max(0, radiusChunks);
+        final int minRegionX = Math.floorDiv(originChunkX - radius, 32);
+        final int maxRegionX = Math.floorDiv(originChunkX + radius, 32);
+        final int minRegionZ = Math.floorDiv(originChunkZ - radius, 32);
+        final int maxRegionZ = Math.floorDiv(originChunkZ + radius, 32);
+        double bestDistance = Double.POSITIVE_INFINITY;
+        int[] best = null;
+
+        for (int rx = minRegionX; rx <= maxRegionX; ++rx) {
+            for (int rz = minRegionZ; rz <= maxRegionZ; ++rz) {
+                final int[] candidate = villageCandidate(seed, rx, rz, biomes);
+                if (candidate == null) continue;
+                final int biome = biomes.getBiomeIds(seed, candidate[0] * 16 + 8, candidate[1] * 16 + 8, 1, 1)[0];
+                if ((biome == 1 && !allowPlains) || (biome == 2 && !allowDesert)) continue;
+                if (Math.abs(candidate[0] - originChunkX) > radius || Math.abs(candidate[1] - originChunkZ) > radius) continue;
+
+                final double dx = (candidate[0] * 16 + 8) - originX;
+                final double dz = (candidate[1] * 16 + 8) - originZ;
+                final double distance = dx * dx + dz * dz;
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    best = candidate;
+                }
+            }
+        }
+        return best;
+    }
+
+    public int[] findNearestStronghold(final long seed, final int originX, final int originZ, final int radiusChunks) {
+        final StructureState state = this.worlds.computeIfAbsent(seed, StructureState::new);
+        final int radius = Math.max(0, radiusChunks);
+        double bestDistance = Double.POSITIVE_INFINITY;
+        int[] best = null;
+
+        for (final int[] candidate : state.strongholdChunks) {
+            final double dx = (candidate[0] * 16 + 8) - originX;
+            final double dz = (candidate[1] * 16 + 8) - originZ;
+            if (Math.abs(candidate[0] - Math.floorDiv(originX, 16)) > radius
+                    || Math.abs(candidate[1] - Math.floorDiv(originZ, 16)) > radius) {
+                continue;
+            }
+            final double distance = dx * dx + dz * dz;
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = new int[]{candidate[0], candidate[1]};
+            }
+        }
+        return best;
+    }
+
+    private static boolean isMineshaftStart(final Random random, final int chunkX, final int chunkZ) {
+        return random.nextInt(100) == 0
+                && random.nextInt(80) < Math.max(Math.abs(chunkX), Math.abs(chunkZ));
+    }
+
+    private static boolean isMineshaftStart(final StructureState state, final int chunkX, final int chunkZ) {
+        synchronized (state) {
+            final long key = chunkKey(chunkX, chunkZ);
+            final StructureStart existing = state.mineshafts.get(key);
+            if (existing != null) return true;
+            if (!state.checkedMineshafts.contains(key)) {
+                final Random random = structureRandom(state, chunkX, chunkZ);
+                random.nextInt();
+                if (!isMineshaftStart(random, chunkX, chunkZ)) {
+                    state.checkedMineshafts.add(key);
+                    return false;
+                }
+            }
+            return isMineshaftStart(new Random(0L), 0, 1) || checkMineshaftWithoutMutation(state, chunkX, chunkZ);
+        }
+    }
+
+    private static boolean checkMineshaftWithoutMutation(final StructureState state, final int chunkX, final int chunkZ) {
+        final Random random = structureRandom(state, chunkX, chunkZ);
+        random.nextInt();
+        return isMineshaftStart(random, chunkX, chunkZ);
+    }
+
+    private static int[] villageCandidate(final long seed, final int regionX, final int regionZ,
+                                          final V125BiomeSource biomes) {
+        final Random random = new Random(
+                (long)regionX * 341873128712L
+                        + (long)regionZ * 132897987541L
+                        + seed + 10387312L
+        );
+        final int candidateX = regionX * 32 + random.nextInt(24);
+        final int candidateZ = regionZ * 32 + random.nextInt(24);
+        if (!biomes.areBiomesViable(seed, candidateX * 16 + 8, candidateZ * 16 + 8, 0, new int[]{1, 2})) {
+            return null;
+        }
+        return new int[]{candidateX, candidateZ};
     }
 
     private static final class StructureState {
