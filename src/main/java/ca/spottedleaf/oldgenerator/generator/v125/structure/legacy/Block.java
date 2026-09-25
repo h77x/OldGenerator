@@ -105,7 +105,12 @@ public final class Block {
     public static final Block vine = b(106, Material.VINE);
 
     public boolean canPlaceBlockAt(final World world, final int x, final int y, final int z) {
-        return world.isAirBlock(x, y, z);
+        if (!world.isAirBlock(x, y, z)) return false;
+        if (this == waterlily) {
+            return world.getBlockId(x, y - 1, z) == waterStill.blockID
+                    && world.getBlockMetadata(x, y - 1, z) == 0;
+        }
+        return true;
     }
     public boolean isGenMineableReplaceable(final World world, final int x, final int y, final int z) {
         return this == stone;
