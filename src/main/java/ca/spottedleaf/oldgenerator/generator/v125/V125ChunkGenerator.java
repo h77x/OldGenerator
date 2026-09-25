@@ -405,6 +405,14 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         return (x * 5 + z) * 17 + y;
     }
 
+    public V125BiomeSource getBiomeSource() {
+        return this.biomeSource;
+    }
+
+    public V125StructureGenerator getStructureGenerator() {
+        return this.structureGenerator;
+    }
+
     @Override
     public List<BlockPopulator> getDefaultPopulators(final World world) {
         return Collections.singletonList(new V125BlockPopulator(this));
