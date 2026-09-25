@@ -575,7 +575,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         for (int i = 0; i < treeCount; ++i) {
             final int x = baseX + random.nextInt(16) + 8;
             final int z = baseZ + random.nextInt(16) + 8;
-            if (!world.isInRegion(x, world.getMinHeight(), z)) continue;
+            if (!world.isInRegion(x, 0, z)) continue;
             final int y = Math.min(127, legacyWorld.getHeightValue(x, z));
             generateTree(legacyWorld, random, biomeId, x, y, z);
         }
