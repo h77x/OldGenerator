@@ -58,6 +58,10 @@ mvn -B -ntp clean verify
 
 GitHub Actions runs the Maven verification build on Java 25; the plugin targets Java 21 bytecode for Maven Shade compatibility.
 
+## Validation
+
+The repository build is continuously verified by GitHub Actions. Runtime output parity still requires comparison against a trusted Minecraft 1.2.5 reference world; the implementation does not claim byte-for-byte parity until that differential test is completed.
+
 ## Source and licensing
 
 The historical generator implementation targets the Minecraft 1.2.5 server generation source. The original Minecraft code is copyrighted by Mojang AB. The plugin's non-Minecraft portions remain under the MIT license in `LICENSE.md`.
