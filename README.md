@@ -27,7 +27,9 @@ The current implementation includes:
 - Source-derived 1.2.5 population generators for ores, sand/clay, lakes, dungeons, trees, flowers, grass, mushrooms, reeds, pumpkins, cacti, liquid springs, desert wells, and cold-biome ice/snow.
 - Source-derived 1.2.5 mineshaft, village, and stronghold structure components and placement rules.
 - Legacy block IDs, metadata, loot, chests, spawners, and structure state bridged into modern Paper/Bukkit block data and tile state.
-- Modern Paper `ChunkGenerator.ChunkData` integration.
+- Modern Paper 26.2 `ChunkGenerator.ChunkData` integration.
+- A registered `BiomeProvider` backed by the same GenLayer data used during chunk generation.
+- Paper `StructuresLocateEvent` integration for legacy mineshaft, village, and stronghold searches.
 - Population through Paper's `BlockPopulator` lifecycle using a `LimitedRegion` bridge.
 
 Recent correctness fixes include the vanilla 1.2.5 GenLayer seed LCG recurrence and Perlin noise corner lookups. The project also preserves the historical height semantics used by vegetation and structure generation.
@@ -44,7 +46,7 @@ worlds:
     generator: OldGenerator:1.2.5
 ```
 
-The generator is intended for modern Paper servers supporting the plugin's declared API version.
+The current build targets Paper 26.2 and runs on the Java runtime required by that server generation.
 
 ## Development
 
@@ -54,7 +56,7 @@ Build with:
 mvn -B -ntp clean verify
 ```
 
-GitHub Actions runs the Maven verification build on Java 17.
+GitHub Actions runs the Maven verification build on Java 25; the plugin targets Java 21 bytecode for Maven Shade compatibility.
 
 ## Source and licensing
 
