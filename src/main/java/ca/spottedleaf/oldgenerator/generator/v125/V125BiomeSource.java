@@ -4,7 +4,10 @@ import ca.spottedleaf.oldgenerator.generator.v125.genlayer.*;
 import org.bukkit.block.Biome;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Random;
 
 public final class V125BiomeSource {
@@ -83,6 +86,14 @@ public final class V125BiomeSource {
 
     public Biome toBukkit(final int id) {
         return BukkitBiomeMapper.map(id);
+    }
+
+    public List<Biome> getUsedBukkitBiomes() {
+        final Set<Biome> result = new LinkedHashSet<>();
+        for (int id = 0; id < 23; ++id) {
+            result.add(this.toBukkit(id));
+        }
+        return List.copyOf(result);
     }
 
     private static GenLayer125 zoom(final long seed, GenLayer125 layer, final int times) {
