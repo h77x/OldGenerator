@@ -15,8 +15,8 @@
 
     <repositories>
         <repository>
-            <id>spigotmc-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
         <repository>
             <id>CodeMC</id>
@@ -26,9 +26,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.21-R0.1-SNAPSHOT</version>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>26.2.build.129-stable</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -47,8 +47,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.14.0</version>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <release>25</release>
                 </configuration>
             </plugin>
             <plugin>
@@ -60,7 +59,7 @@
                         <relocation>
                             <pattern>org.bstats</pattern>
                             <shadedPattern>ca.spottedleaf.oldgenerator.org.bstats</shadedPattern>
-                        </relocation>
+                        </relocations>
                     </relocations>
                 </configuration>
                 <executions>
