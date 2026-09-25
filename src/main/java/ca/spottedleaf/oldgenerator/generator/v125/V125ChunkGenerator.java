@@ -9,6 +9,8 @@ import ca.spottedleaf.oldgenerator.generator.v125.tree.*;
 import ca.spottedleaf.oldgenerator.generator.v125.structure.V125StructureGenerator;
 import ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.Block;
 import org.bukkit.generator.BlockPopulator;
+import org.bukkit.generator.BiomeProvider;
+import org.bukkit.generator.WorldInfo;
 import java.util.Collections;
 import java.util.List;
 import ca.spottedleaf.oldgenerator.util.BlockConstants;
@@ -72,6 +74,12 @@ public final class V125ChunkGenerator extends ChunkGenerator {
     public boolean isParallelCapable() {
         return true;
     }
+
+    @Override
+    public BiomeProvider getDefaultBiomeProvider(final WorldInfo worldInfo) {
+        return new V125BiomeProvider(this.biomeSource);
+    }
+
 
     @Override
     public boolean shouldGenerateCaves() { return false; }
@@ -395,6 +403,14 @@ public final class V125ChunkGenerator extends ChunkGenerator {
 
     private static int densityIndex(final int x, final int z, final int y) {
         return (x * 5 + z) * 17 + y;
+    }
+
+    public V125BiomeSource getBiomeSource() {
+        return this.biomeSource;
+    }
+
+    public V125StructureGenerator getStructureGenerator() {
+        return this.structureGenerator;
     }
 
     @Override

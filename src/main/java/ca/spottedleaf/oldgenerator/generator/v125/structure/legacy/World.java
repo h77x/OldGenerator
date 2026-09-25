@@ -166,7 +166,7 @@ public final class World {
     }
 
     private void setInternal(final int x, final int y, final int z, final int id, final int meta) {
-        if (y < access.getMinHeight() || y > access.getMaxHeight()) return;
+        if (!access.isInRegion(x, y, z)) return;
         final Block block = (id >= 0 && id < Block.blocksList.length) ? Block.blocksList[id] : null;
         if (block == null) {
             access.setType(x, y, z, org.bukkit.Material.AIR, false);
@@ -290,6 +290,7 @@ public final class World {
             } else if ((id == Block.doorWood.blockID || id == Block.doorSteel.blockID) && data instanceof Door door) {
                 final boolean top = (meta & 8) != 0;
                 if (top) {
+                    door.setHalf(Bisected.Half.TOP);
                     door.setHinge((meta & 1) != 0 ? Door.Hinge.RIGHT : Door.Hinge.LEFT);
                 } else {
                     door.setOpen((meta & 4) != 0);
@@ -383,7 +384,7 @@ public final class World {
     }
 
     public int getHeightValue(final int x, final int z) {
-        for (int y = access.getMaxHeight(); y > 0; --y) {
+        for (int y = access.getMaxHeight() + 1; y > 0; --y) {
             if (getBlockId(x, y - 1, z) != 0) {
                 return y;
             }

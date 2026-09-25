@@ -2,7 +2,7 @@ main: ca.spottedleaf.oldgenerator.OldGenerator
 version: ${version}
 name: OldGenerator
 load: STARTUP
-api-version: "1.21"
+api-version: "26.2"
 authors: [Spottedleaf]
 description: A standalone Minecraft 1.2.5 world generator for modern Paper servers.
 folia-supported: true

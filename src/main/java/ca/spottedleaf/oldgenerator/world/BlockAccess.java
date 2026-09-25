@@ -9,6 +9,15 @@ public interface BlockAccess {
 
     public boolean isLoaded(final int chunkX, final int chunkZ);
 
+    /**
+     * Returns whether an individual block coordinate is accessible to this
+     * generation pass. World-backed access normally has no region restriction;
+     * limited population access must use the host API's exact generation buffer.
+     */
+    default boolean isInRegion(final int x, final int y, final int z) {
+        return y >= this.getMinHeight() && y <= this.getMaxHeight();
+    }
+
     public Material getType(final int x, final int y, final int z);
 
     public void setType(final int x, final int y, final int z, final Material material);
