@@ -4,6 +4,7 @@ import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 public final class WorldBlockAccess implements BlockAccess {
@@ -22,6 +23,7 @@ public final class WorldBlockAccess implements BlockAccess {
     }
 
     @Override public boolean isLoaded(final int chunkX, final int chunkZ) { return this.world.isChunkLoaded(chunkX, chunkZ); }
+    @Override public Biome getBiome(final int x, final int y, final int z) { return this.world.getBiome(x, y, z); }
     @Override public Material getType(final int x, final int y, final int z) { return this.world.getBlockAt(x,y,z).getType(); }
     @Override public void setType(final int x, final int y, final int z, final Material material) { this.world.getBlockAt(x,y,z).setType(material); }
     @Override public void setType(final int x, final int y, final int z, final Material material, final boolean physics) { this.world.getBlockAt(x,y,z).setType(material,physics); }

@@ -2,6 +2,9 @@ package ca.spottedleaf.oldgenerator.generator.v125.structure.legacy;
 
 import org.bukkit.Material;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 public final class Block {
     public final int blockID;
     public final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.Material blockMaterial;
@@ -103,6 +106,21 @@ public final class Block {
     public static final Block mushroomRed = b(40, Material.RED_MUSHROOM);
     public static final Block mycelium = b(110, Material.MYCELIUM);
     public static final Block vine = b(106, Material.VINE);
+
+    private static final Map<Material, Integer> MATERIAL_TO_ID = createMaterialToId();
+
+    private static Map<Material, Integer> createMaterialToId() {
+        final Map<Material, Integer> result = new EnumMap<>(Material.class);
+        for (final Block block : blocksList) {
+            if (block != null) result.putIfAbsent(block.material, block.blockID);
+        }
+        return result;
+    }
+
+    public static int idForMaterial(final Material material) {
+        final Integer id = MATERIAL_TO_ID.get(material);
+        return id == null ? -1 : id;
+    }
 
     public boolean canPlaceBlockAt(final World world, final int x, final int y, final int z) {
         if (!world.isAirBlock(x, y, z)) return false;

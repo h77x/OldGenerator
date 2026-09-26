@@ -1,6 +1,7 @@
 package ca.spottedleaf.oldgenerator.generator.v125.structure.legacy;
 
 import ca.spottedleaf.oldgenerator.generator.v125.V125BiomeSource;
+import ca.spottedleaf.oldgenerator.util.LeafDistanceCalculator;
 import ca.spottedleaf.oldgenerator.world.BlockAccess;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -34,6 +35,11 @@ public final class World {
     private final Map<Long, TileEntityMobSpawner> spawners = new HashMap<>();
     private final Map<Long, Integer> legacyIds = new HashMap<>();
     private final Map<Long, Integer> legacyMetadata = new HashMap<>();
+    private LeafDistanceCalculator leafDistanceCalculator;
+
+    public void setLeafDistanceCalculator(final LeafDistanceCalculator leafDistanceCalculator) {
+        this.leafDistanceCalculator = leafDistanceCalculator;
+    }
 
     public World(final long seed, final BlockAccess access, final V125BiomeSource source){
         this.seed=seed;this.access=access;this.manager=new WorldChunkManager(source,seed);
@@ -60,7 +66,8 @@ public final class World {
         if (m == org.bukkit.Material.OAK_SAPLING || m == org.bukkit.Material.SPRUCE_SAPLING
                 || m == org.bukkit.Material.BIRCH_SAPLING || m == org.bukkit.Material.JUNGLE_SAPLING) return Block.sapling.blockID;
         if (m == org.bukkit.Material.SHORT_GRASS || m == org.bukkit.Material.FERN) return Block.tallGrass.blockID;
-        for (Block b : Block.blocksList) if (b != null && b.material == m) return b.blockID;
+        final int reverse = Block.idForMaterial(m);
+        if (reverse >= 0) return reverse;
         return m == org.bukkit.Material.AIR ? 0 : 1;
     }
     public Material getBlockMaterial(int x,int y,int z){
@@ -198,11 +205,18 @@ public final class World {
         }
         final int effectiveMeta = stateMeta < 0 ? meta : stateMeta;
         final org.bukkit.Material stateMaterial = modernMaterial(id, effectiveMeta, block.material);
-        final BlockData data = createBlockData(id, stateMeta, stateMaterial);
+        final int blockDataMeta = isDoorBlock(id) && (effectiveMeta & 8) != 0
+                ? combinedDoorModernMetadata(x, y, z, id, effectiveMeta)
+                : stateMeta;
+        final BlockData data = createBlockData(id, blockDataMeta, stateMaterial);
         if (data != null) {
             access.setBlockData(x, y, z, data, false);
         } else {
             access.setType(x, y, z, stateMaterial, false);
+        }
+
+        if (id == Block.wood.blockID && this.leafDistanceCalculator != null) {
+            this.leafDistanceCalculator.addLog(x, y, z);
         }
 
         // Vanilla 1.2.5 recalculates attachable/connecting block shapes when
@@ -210,6 +224,10 @@ public final class World {
         // so refresh the affected neighbourhood explicitly.
         refreshLegacyConnectables(x, y, z);
         refreshLegacyStairShapes(x, y, z);
+        refreshLegacyRails(x, y, z);
+        if (isDoorBlock(id)) {
+            refreshLegacyDoorPair(x, y, z);
+        }
     }
 
     private int normalizePlacementMetadata(final int x, final int y, final int z,
@@ -242,6 +260,13 @@ public final class World {
     }
 
     private void refreshLegacyConnectables(final int x, final int y, final int z) {
+        if (!isPotentiallyConnectable(getBlockId(x, y, z))
+                && !isPotentiallyConnectable(getBlockId(x - 1, y, z))
+                && !isPotentiallyConnectable(getBlockId(x + 1, y, z))
+                && !isPotentiallyConnectable(getBlockId(x, y, z - 1))
+                && !isPotentiallyConnectable(getBlockId(x, y, z + 1))) {
+            return;
+        }
         refreshLegacyConnectable(x, y, z);
         refreshLegacyConnectable(x - 1, y, z);
         refreshLegacyConnectable(x + 1, y, z);
@@ -280,6 +305,10 @@ public final class World {
             }
             return;
         }
+        if (id == Block.vine.blockID) {
+            refreshLegacyVine(x, y, z);
+            return;
+        }
         if (id != Block.fence.blockID && id != Block.fenceIron.blockID && id != Block.thinGlass.blockID) return;
 
         final BlockData data = access.getBlockData(x, y, z);
@@ -297,6 +326,14 @@ public final class World {
     }
 
     private void refreshLegacyStairShapes(final int x, final int y, final int z) {
+        final int id = getBlockId(x, y, z);
+        if (!isStairBlock(id)
+                && !isStairBlock(getBlockId(x - 1, y, z))
+                && !isStairBlock(getBlockId(x + 1, y, z))
+                && !isStairBlock(getBlockId(x, y, z - 1))
+                && !isStairBlock(getBlockId(x, y, z + 1))) {
+            return;
+        }
         refreshLegacyStairShape(x, y, z);
         refreshLegacyStairShape(x - 1, y, z);
         refreshLegacyStairShape(x + 1, y, z);
@@ -432,6 +469,211 @@ public final class World {
         return neighbour == Block.fenceIron.blockID;
     }
 
+    private static boolean isDoorBlock(final int id) {
+        return id == Block.doorWood.blockID || id == Block.doorSteel.blockID;
+    }
+
+    private static boolean isRailBlock(final int id) {
+        return id == Block.rail.blockID;
+    }
+
+    private int combinedDoorModernMetadata(final int x, final int y, final int z,
+                                           final int id, final int upperMeta) {
+        if ((upperMeta & 8) == 0 || !isDoorBlock(id) || y <= access.getMinHeight()) {
+            return upperMeta;
+        }
+        if (getBlockId(x, y - 1, z) != id) {
+            return upperMeta;
+        }
+        return 8 | (getBlockMetadata(x, y - 1, z) & 7) | (upperMeta & 1);
+    }
+
+    private void refreshLegacyDoorPair(final int x, final int y, final int z) {
+        int id = getBlockId(x, y, z);
+        if (!isDoorBlock(id)) {
+            if (access.isInRegion(x, y + 1, z)) id = getBlockId(x, y + 1, z);
+            if (!isDoorBlock(id) && access.isInRegion(x, y - 1, z)) id = getBlockId(x, y - 1, z);
+            if (!isDoorBlock(id)) return;
+        }
+
+        final int lowerY = (getBlockMetadata(x, y, z) & 8) != 0 ? y - 1 : y;
+        final int upperY = lowerY + 1;
+        if (!access.isInRegion(x, lowerY, z) || !access.isInRegion(x, upperY, z)) return;
+
+        final int lowerId = getBlockId(x, lowerY, z);
+        final int upperId = getBlockId(x, upperY, z);
+        if (!isDoorBlock(lowerId) || lowerId != upperId) return;
+
+        final int lowerMeta = getBlockMetadata(x, lowerY, z) & 7;
+        final int upperRawMeta = getBlockMetadata(x, upperY, z);
+        final int upperMeta = 8 | lowerMeta | (upperRawMeta & 1);
+
+        legacyMetadata.put(blockKey(x, lowerY, z), lowerMeta);
+        legacyMetadata.put(blockKey(x, upperY, z), upperMeta);
+        writeModernBlockData(x, lowerY, z, lowerId, lowerMeta);
+        writeModernBlockData(x, upperY, z, upperId, upperMeta);
+    }
+
+    private void refreshLegacyRails(final int x, final int y, final int z) {
+        if (!isRailBlock(getBlockId(x, y, z))
+                && !isRailBlock(getBlockId(x - 1, y, z))
+                && !isRailBlock(getBlockId(x + 1, y, z))
+                && !isRailBlock(getBlockId(x, y, z - 1))
+                && !isRailBlock(getBlockId(x, y, z + 1))
+                && !isRailBlock(getBlockId(x, y - 1, z))
+                && !isRailBlock(getBlockId(x, y + 1, z))) {
+            return;
+        }
+        refreshLegacyRail(x, y, z);
+        refreshLegacyRail(x - 1, y, z);
+        refreshLegacyRail(x + 1, y, z);
+        refreshLegacyRail(x, y, z - 1);
+        refreshLegacyRail(x, y, z + 1);
+        refreshLegacyRail(x, y - 1, z);
+        refreshLegacyRail(x, y + 1, z);
+    }
+
+    private void refreshLegacyRail(final int x, final int y, final int z) {
+        if (!access.isInRegion(x, y, z) || !isRailBlock(getBlockId(x, y, z))) return;
+        final BlockData data = access.getBlockData(x, y, z);
+        if (!(data instanceof Rail rail)) return;
+
+        final boolean north = isRailNeighbour(x, y, z - 1);
+        final boolean south = isRailNeighbour(x, y, z + 1);
+        final boolean west = isRailNeighbour(x - 1, y, z);
+        final boolean east = isRailNeighbour(x + 1, y, z);
+
+        final Rail.Shape current = rail.getShape();
+        final Rail.Shape shape;
+        if (hasHigherOrLowerRail(x, y, z, 1, 0)) {
+            shape = Rail.Shape.ASCENDING_EAST;
+        } else if (hasHigherOrLowerRail(x, y, z, -1, 0)) {
+            shape = Rail.Shape.ASCENDING_WEST;
+        } else if (hasHigherOrLowerRail(x, y, z, 0, -1)) {
+            shape = Rail.Shape.ASCENDING_NORTH;
+        } else if (hasHigherOrLowerRail(x, y, z, 0, 1)) {
+            shape = Rail.Shape.ASCENDING_SOUTH;
+        } else if (north && south && !east && !west) {
+            shape = Rail.Shape.NORTH_SOUTH;
+        } else if (east && west && !north && !south) {
+            shape = Rail.Shape.EAST_WEST;
+        } else if (north && east && !south && !west) {
+            shape = Rail.Shape.NORTH_EAST;
+        } else if (north && west && !south && !east) {
+            shape = Rail.Shape.NORTH_WEST;
+        } else if (south && east && !north && !west) {
+            shape = Rail.Shape.SOUTH_EAST;
+        } else if (south && west && !north && !east) {
+            shape = Rail.Shape.SOUTH_WEST;
+        } else if (north || south) {
+            shape = Rail.Shape.NORTH_SOUTH;
+        } else if (east || west) {
+            shape = Rail.Shape.EAST_WEST;
+        } else {
+            shape = current;
+        }
+
+        if (shape != current) {
+            rail.setShape(shape);
+            legacyMetadata.put(blockKey(x, y, z), legacyRailMetadata(shape));
+            access.setBlockData(x, y, z, rail, false);
+        }
+    }
+
+    private boolean isRailNeighbour(final int x, final int y, final int z) {
+        return isRailAt(x, y, z) || isRailAt(x, y - 1, z) || isRailAt(x, y + 1, z);
+    }
+
+    private boolean isRailAt(final int x, final int y, final int z) {
+        return access.isInRegion(x, y, z) && isRailBlock(getBlockId(x, y, z));
+    }
+
+    private boolean hasHigherOrLowerRail(final int x, final int y, final int z,
+                                         final int offsetX, final int offsetZ) {
+        return isRailAt(x + offsetX, y + 1, z + offsetZ)
+                || isRailAt(x + offsetX, y - 1, z + offsetZ);
+    }
+
+    private static int legacyRailMetadata(final Rail.Shape shape) {
+        return switch (shape) {
+            case NORTH_SOUTH -> 0;
+            case EAST_WEST -> 1;
+            case ASCENDING_EAST -> 2;
+            case ASCENDING_WEST -> 3;
+            case ASCENDING_NORTH -> 4;
+            case ASCENDING_SOUTH -> 5;
+            case SOUTH_EAST -> 6;
+            case SOUTH_WEST -> 7;
+            case NORTH_WEST -> 8;
+            case NORTH_EAST -> 9;
+        };
+    }
+
+    private static boolean isPotentiallyConnectable(final int id) {
+        return id == Block.torchWood.blockID
+                || id == Block.ladder.blockID
+                || id == Block.fence.blockID
+                || id == Block.fenceIron.blockID
+                || id == Block.thinGlass.blockID
+                || id == Block.vine.blockID;
+    }
+
+    private static boolean isStairBlock(final int id) {
+        return id == Block.stairCompactPlanks.blockID
+                || id == Block.stairCompactCobblestone.blockID
+                || id == Block.stairsNetherBrick.blockID
+                || id == Block.stairsStoneBrickSmooth.blockID;
+    }
+
+    private void refreshLegacyVine(final int x, final int y, final int z) {
+        if (!access.isInRegion(x, y, z)) return;
+        final BlockData data = access.getBlockData(x, y, z);
+        if (!(data instanceof MultipleFacing vine)) return;
+
+        // 1.2.5 vine bits: 1=south, 2=west, 4=north, 8=east.
+        final boolean south = vine.hasFace(BlockFace.SOUTH)
+                && canVineAttachOnSide(x, y, z, 2);
+        final boolean west = vine.hasFace(BlockFace.WEST)
+                && canVineAttachOnSide(x, y, z, 5);
+        final boolean north = vine.hasFace(BlockFace.NORTH)
+                && canVineAttachOnSide(x, y, z, 3);
+        final boolean east = vine.hasFace(BlockFace.EAST)
+                && canVineAttachOnSide(x, y, z, 4);
+        final int meta = (south ? 1 : 0) | (west ? 2 : 0) | (north ? 4 : 0) | (east ? 8 : 0);
+        final long key = blockKey(x, y, z);
+
+        vine.setFace(BlockFace.NORTH, north);
+        vine.setFace(BlockFace.EAST, east);
+        vine.setFace(BlockFace.SOUTH, south);
+        vine.setFace(BlockFace.WEST, west);
+
+        if (meta == 0) {
+            legacyIds.remove(key);
+            legacyMetadata.remove(key);
+            access.setType(x, y, z, org.bukkit.Material.AIR, false);
+            return;
+        }
+
+        legacyIds.put(key, Block.vine.blockID);
+        legacyMetadata.put(key, meta);
+        access.setBlockData(x, y, z, vine, false);
+    }
+
+    private boolean canVineAttachOnSide(final int x, final int y, final int z, final int side) {
+        final int neighbourId;
+        switch (side) {
+            case 2 -> neighbourId = getBlockId(x, y, z + 1);
+            case 3 -> neighbourId = getBlockId(x, y, z - 1);
+            case 4 -> neighbourId = getBlockId(x + 1, y, z);
+            case 5 -> neighbourId = getBlockId(x - 1, y, z);
+            default -> { return false; }
+        }
+        // Tree generation in 1.2.5 explicitly hangs vines from leaf blocks,
+        // while the standalone vine generator only accepts normal solid supports.
+        return neighbourId == Block.leaves.blockID
+                || Block.vine.canPlaceBlockOnSide(this, x, y, z, side);
+    }
+
     private void writeModernBlockData(final int x, final int y, final int z, final int id, final int meta) {
         final Block block = id >= 0 && id < Block.blocksList.length ? Block.blocksList[id] : null;
         if (block == null) return;
@@ -531,6 +773,9 @@ public final class World {
 
             if (id == Block.wood.blockID && data instanceof Orientable orientable) {
                 orientable.setAxis((meta & 12) == 4 ? org.bukkit.Axis.X : ((meta & 12) == 8 ? org.bukkit.Axis.Z : org.bukkit.Axis.Y));
+            } else if (id == Block.leaves.blockID && data instanceof org.bukkit.block.data.type.Leaves leaves) {
+                leaves.setPersistent(false);
+                leaves.setDistance(7);
             } else if (id == Block.stairCompactPlanks.blockID || id == Block.stairCompactCobblestone.blockID
                     || id == Block.stairsNetherBrick.blockID || id == Block.stairsStoneBrickSmooth.blockID) {
                 if (data instanceof Stairs stairs) {
@@ -547,18 +792,19 @@ public final class World {
                 }
             } else if (id == Block.ladder.blockID && data instanceof Directional directional) {
                 directional.setFacing(switch (meta & 7) {
-                    case 2 -> BlockFace.SOUTH;
-                    case 3 -> BlockFace.NORTH;
-                    case 4 -> BlockFace.EAST;
-                    default -> BlockFace.WEST;
+                    case 2 -> BlockFace.NORTH;
+                    case 3 -> BlockFace.SOUTH;
+                    case 4 -> BlockFace.WEST;
+                    case 5 -> BlockFace.EAST;
+                    default -> BlockFace.NORTH;
                 });
             } else if (id == Block.rail.blockID && data instanceof Rail rail) {
                 final int shape = meta & 15;
-                // 1.2.5 rail metadata: 0=E/W, 1=N/S, 2..5 ascending,
-                // 6..9 corners. The old metadata is not offset by one.
+                // 1.2.5 rail metadata: 0=N/S, 1=E/W, 2..5 ascending,
+                // 6..9 corners.
                 rail.setShape(switch (shape) {
-                    case 0 -> Rail.Shape.EAST_WEST;
-                    case 1 -> Rail.Shape.NORTH_SOUTH;
+                    case 0 -> Rail.Shape.NORTH_SOUTH;
+                    case 1 -> Rail.Shape.EAST_WEST;
                     case 2 -> Rail.Shape.ASCENDING_EAST;
                     case 3 -> Rail.Shape.ASCENDING_WEST;
                     case 4 -> Rail.Shape.ASCENDING_NORTH;
@@ -573,6 +819,13 @@ public final class World {
                 final boolean top = (meta & 8) != 0;
                 if (top) {
                     door.setHalf(Bisected.Half.TOP);
+                    door.setOpen((meta & 4) != 0);
+                    door.setFacing(switch (meta & 3) {
+                        case 0 -> BlockFace.EAST;
+                        case 1 -> BlockFace.SOUTH;
+                        case 2 -> BlockFace.WEST;
+                        default -> BlockFace.NORTH;
+                    });
                     door.setHinge((meta & 1) != 0 ? Door.Hinge.RIGHT : Door.Hinge.LEFT);
                 } else {
                     door.setOpen((meta & 4) != 0);
@@ -593,10 +846,11 @@ public final class World {
                 });
                 gate.setOpen((meta & 4) != 0);
             } else if (id == Block.vine.blockID && data instanceof org.bukkit.block.data.MultipleFacing vine) {
-                vine.setFace(BlockFace.NORTH, (meta & 1) != 0);
-                vine.setFace(BlockFace.EAST, (meta & 2) != 0);
-                vine.setFace(BlockFace.SOUTH, (meta & 4) != 0);
-                vine.setFace(BlockFace.WEST, (meta & 8) != 0);
+                // 1.2.5 vine bits: 1=south, 2=west, 4=north, 8=east.
+                vine.setFace(BlockFace.SOUTH, (meta & 1) != 0);
+                vine.setFace(BlockFace.WEST, (meta & 2) != 0);
+                vine.setFace(BlockFace.NORTH, (meta & 4) != 0);
+                vine.setFace(BlockFace.EAST, (meta & 8) != 0);
             } else if (id == Block.torchWood.blockID && data instanceof Directional directional
                     && material == org.bukkit.Material.WALL_TORCH) {
                 directional.setFacing(switch (meta & 7) {

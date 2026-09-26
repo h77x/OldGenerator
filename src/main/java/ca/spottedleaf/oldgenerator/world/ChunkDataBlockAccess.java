@@ -3,6 +3,7 @@ package ca.spottedleaf.oldgenerator.world;
 import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator;
 
@@ -31,6 +32,7 @@ public final class ChunkDataBlockAccess implements BlockAccess {
         return x >= 0 && x < 16 && z >= 0 && z < 16 && y >= 0 && y < 128;
     }
 
+    @Override public Biome getBiome(final int x, final int y, final int z) { checkCoordinates(x, y, z); return this.chunkData.getBiome(x, y, z); }
     @Override public Material getType(final int x, final int y, final int z) { checkCoordinates(x, y, z); return this.chunkData.getType(x, y, z); }
     @Override public void setType(final int x, final int y, final int z, final Material material) { checkCoordinates(x, y, z); this.chunkData.setBlock(x, y, z, material); }
     @Override public void setType(final int x, final int y, final int z, final Material material, final boolean applyPhysics) { checkCoordinates(x, y, z); this.chunkData.setBlock(x, y, z, material); }
