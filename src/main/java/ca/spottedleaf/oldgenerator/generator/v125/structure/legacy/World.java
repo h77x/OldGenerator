@@ -249,6 +249,15 @@ public final class World {
     private void refreshLegacyConnectable(final int x, final int y, final int z) {
         if (!access.isInRegion(x, y, z)) return;
         final int id = getBlockId(x, y, z);
+        if (id == Block.ladder.blockID) {
+            final int meta = getBlockMetadata(x, y, z);
+            if (!ladderSupportMatchesMetadata(x, y, z, meta)) {
+                legacyIds.remove(blockKey(x, y, z));
+                legacyMetadata.remove(blockKey(x, y, z));
+                access.setType(x, y, z, org.bukkit.Material.AIR, false);
+            }
+            return;
+        }
         if (id == Block.torchWood.blockID) {
             final int meta = getBlockMetadata(x, y, z);
             if (meta == 0 || meta == 15) {
@@ -375,6 +384,23 @@ public final class World {
             case SOUTH -> BlockFace.EAST;
             default -> BlockFace.NORTH;
         };
+    }
+
+    private boolean ladderSupportMatchesMetadata(final int x, final int y, final int z, final int meta) {
+        return switch (meta & 7) {
+            case 2 -> isLadderSupport(x, y, z + 1);
+            case 3 -> isLadderSupport(x, y, z - 1);
+            case 4 -> isLadderSupport(x + 1, y, z);
+            case 5 -> isLadderSupport(x - 1, y, z);
+            default -> false;
+        };
+    }
+
+    private boolean isLadderSupport(final int x, final int y, final int z) {
+        final int id = getBlockId(x, y, z);
+        if (id < 0 || id >= Block.blocksList.length) return false;
+        final Block block = Block.blocksList[id];
+        return block != null && Block.opaqueCubeLookup[id];
     }
 
     private boolean torchSupportMatchesMetadata(final int x, final int y, final int z, final int meta) {

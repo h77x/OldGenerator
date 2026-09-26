@@ -117,7 +117,18 @@ public final class Block {
     }
     public boolean canBlockStay(final World world, final int x, final int y, final int z) {
         final int below = world.getBlockId(x, y - 1, z);
-        if (this == cactus) return below == cactus.blockID || below == sand.blockID;
+        if (this == cactus) {
+            // 1.2.5 also disallows a cactus when any horizontal neighbour is
+            // solid; this is what keeps generated cactus columns from clipping
+            // into walls and is part of BlockCactus.canBlockStay().
+            if (world.getBlockMaterial(x - 1, y, z).isSolid()
+                    || world.getBlockMaterial(x + 1, y, z).isSolid()
+                    || world.getBlockMaterial(x, y, z - 1).isSolid()
+                    || world.getBlockMaterial(x, y, z + 1).isSolid()) {
+                return false;
+            }
+            return below == cactus.blockID || below == sand.blockID;
+        }
         if (this == reed) {
             return below == reed.blockID || below == grass.blockID || below == dirt.blockID || below == sand.blockID;
         }
