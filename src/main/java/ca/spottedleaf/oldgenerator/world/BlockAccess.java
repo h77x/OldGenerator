@@ -42,6 +42,11 @@ public interface BlockAccess {
 
     public int getHighestBlockYAt(final int x, final int z, final HeightMap heightMap);
 
+    /** Host hook for legacy structure entity generation. */
+    default boolean spawnVillager(final double x, final double y, final double z, final int profession) {
+        return false;
+    }
+
     default int getTotalHeight() {
         return this.getMaxHeight() - this.getMinHeight() + 1;
     }
