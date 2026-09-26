@@ -1,6 +1,7 @@
 package ca.spottedleaf.oldgenerator.generator.v125.structure.legacy;
 
 import ca.spottedleaf.oldgenerator.generator.v125.V125BiomeSource;
+import ca.spottedleaf.oldgenerator.util.LeafDistanceCalculator;
 import ca.spottedleaf.oldgenerator.world.BlockAccess;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -34,6 +35,11 @@ public final class World {
     private final Map<Long, TileEntityMobSpawner> spawners = new HashMap<>();
     private final Map<Long, Integer> legacyIds = new HashMap<>();
     private final Map<Long, Integer> legacyMetadata = new HashMap<>();
+    private LeafDistanceCalculator leafDistanceCalculator;
+
+    public void setLeafDistanceCalculator(final LeafDistanceCalculator leafDistanceCalculator) {
+        this.leafDistanceCalculator = leafDistanceCalculator;
+    }
 
     public World(final long seed, final BlockAccess access, final V125BiomeSource source){
         this.seed=seed;this.access=access;this.manager=new WorldChunkManager(source,seed);
@@ -60,7 +66,8 @@ public final class World {
         if (m == org.bukkit.Material.OAK_SAPLING || m == org.bukkit.Material.SPRUCE_SAPLING
                 || m == org.bukkit.Material.BIRCH_SAPLING || m == org.bukkit.Material.JUNGLE_SAPLING) return Block.sapling.blockID;
         if (m == org.bukkit.Material.SHORT_GRASS || m == org.bukkit.Material.FERN) return Block.tallGrass.blockID;
-        for (Block b : Block.blocksList) if (b != null && b.material == m) return b.blockID;
+        final int reverse = Block.idForMaterial(m);
+        if (reverse >= 0) return reverse;
         return m == org.bukkit.Material.AIR ? 0 : 1;
     }
     public Material getBlockMaterial(int x,int y,int z){
@@ -205,6 +212,10 @@ public final class World {
             access.setType(x, y, z, stateMaterial, false);
         }
 
+        if (id == Block.wood.blockID && this.leafDistanceCalculator != null) {
+            this.leafDistanceCalculator.addLog(x, y, z);
+        }
+
         // Vanilla 1.2.5 recalculates attachable/connecting block shapes when
         // neighbours change. Modern BlockData is static when physics is disabled,
         // so refresh the affected neighbourhood explicitly.
@@ -242,6 +253,13 @@ public final class World {
     }
 
     private void refreshLegacyConnectables(final int x, final int y, final int z) {
+        if (!isPotentiallyConnectable(getBlockId(x, y, z))
+                && !isPotentiallyConnectable(getBlockId(x - 1, y, z))
+                && !isPotentiallyConnectable(getBlockId(x + 1, y, z))
+                && !isPotentiallyConnectable(getBlockId(x, y, z - 1))
+                && !isPotentiallyConnectable(getBlockId(x, y, z + 1))) {
+            return;
+        }
         refreshLegacyConnectable(x, y, z);
         refreshLegacyConnectable(x - 1, y, z);
         refreshLegacyConnectable(x + 1, y, z);
@@ -280,6 +298,10 @@ public final class World {
             }
             return;
         }
+        if (id == Block.vine.blockID) {
+            refreshLegacyVine(x, y, z);
+            return;
+        }
         if (id != Block.fence.blockID && id != Block.fenceIron.blockID && id != Block.thinGlass.blockID) return;
 
         final BlockData data = access.getBlockData(x, y, z);
@@ -297,6 +319,14 @@ public final class World {
     }
 
     private void refreshLegacyStairShapes(final int x, final int y, final int z) {
+        final int id = getBlockId(x, y, z);
+        if (!isStairBlock(id)
+                && !isStairBlock(getBlockId(x - 1, y, z))
+                && !isStairBlock(getBlockId(x + 1, y, z))
+                && !isStairBlock(getBlockId(x, y, z - 1))
+                && !isStairBlock(getBlockId(x, y, z + 1))) {
+            return;
+        }
         refreshLegacyStairShape(x, y, z);
         refreshLegacyStairShape(x - 1, y, z);
         refreshLegacyStairShape(x + 1, y, z);
@@ -432,6 +462,51 @@ public final class World {
         return neighbour == Block.fenceIron.blockID;
     }
 
+    private static boolean isPotentiallyConnectable(final int id) {
+        return id == Block.torchWood.blockID
+                || id == Block.ladder.blockID
+                || id == Block.fence.blockID
+                || id == Block.fenceIron.blockID
+                || id == Block.thinGlass.blockID
+                || id == Block.vine.blockID;
+    }
+
+    private static boolean isStairBlock(final int id) {
+        return id == Block.stairCompactPlanks.blockID
+                || id == Block.stairCompactCobblestone.blockID
+                || id == Block.stairsNetherBrick.blockID
+                || id == Block.stairsStoneBrickSmooth.blockID;
+    }
+
+    private void refreshLegacyVine(final int x, final int y, final int z) {
+        if (!access.isInRegion(x, y, z)) return;
+        final BlockData data = access.getBlockData(x, y, z);
+        if (!(data instanceof MultipleFacing vine)) return;
+
+        final boolean north = Block.vine.canPlaceBlockOnSide(this, x, y, z, 3);
+        final boolean east = Block.vine.canPlaceBlockOnSide(this, x, y, z, 4);
+        final boolean south = Block.vine.canPlaceBlockOnSide(this, x, y, z, 2);
+        final boolean west = Block.vine.canPlaceBlockOnSide(this, x, y, z, 5);
+        final int meta = (north ? 1 : 0) | (east ? 2 : 0) | (south ? 4 : 0) | (west ? 8 : 0);
+        final long key = blockKey(x, y, z);
+
+        vine.setFace(BlockFace.NORTH, north);
+        vine.setFace(BlockFace.EAST, east);
+        vine.setFace(BlockFace.SOUTH, south);
+        vine.setFace(BlockFace.WEST, west);
+
+        if (meta == 0) {
+            legacyIds.remove(key);
+            legacyMetadata.remove(key);
+            access.setType(x, y, z, org.bukkit.Material.AIR, false);
+            return;
+        }
+
+        legacyIds.put(key, Block.vine.blockID);
+        legacyMetadata.put(key, meta);
+        access.setBlockData(x, y, z, vine, false);
+    }
+
     private void writeModernBlockData(final int x, final int y, final int z, final int id, final int meta) {
         final Block block = id >= 0 && id < Block.blocksList.length ? Block.blocksList[id] : null;
         if (block == null) return;
@@ -531,6 +606,9 @@ public final class World {
 
             if (id == Block.wood.blockID && data instanceof Orientable orientable) {
                 orientable.setAxis((meta & 12) == 4 ? org.bukkit.Axis.X : ((meta & 12) == 8 ? org.bukkit.Axis.Z : org.bukkit.Axis.Y));
+            } else if (id == Block.leaves.blockID && data instanceof org.bukkit.block.data.type.Leaves leaves) {
+                leaves.setPersistent(false);
+                leaves.setDistance(7);
             } else if (id == Block.stairCompactPlanks.blockID || id == Block.stairCompactCobblestone.blockID
                     || id == Block.stairsNetherBrick.blockID || id == Block.stairsStoneBrickSmooth.blockID) {
                 if (data instanceof Stairs stairs) {
