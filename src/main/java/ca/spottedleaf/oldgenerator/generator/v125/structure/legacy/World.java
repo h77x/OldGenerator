@@ -188,7 +188,15 @@ public final class World {
         }
 
         final int stateMeta = normalizePlacementMetadata(x, y, z, id, meta);
-        final org.bukkit.Material stateMaterial = modernMaterial(id, stateMeta, block.material);
+        if (id == Block.torchWood.blockID && (meta == 0 || meta == 15) && stateMeta < 0) {
+            legacyIds.remove(key);
+            legacyMetadata.remove(key);
+            access.setType(x, y, z, org.bukkit.Material.AIR, false);
+            refreshLegacyConnectables(x, y, z);
+            return;
+        }
+        final int effectiveMeta = stateMeta < 0 ? meta : stateMeta;
+        final org.bukkit.Material stateMaterial = modernMaterial(id, effectiveMeta, block.material);
         final BlockData data = createBlockData(id, stateMeta, stateMaterial);
         if (data != null) {
             access.setBlockData(x, y, z, data, false);
@@ -212,7 +220,7 @@ public final class World {
         if (isTorchSupport(x, y, z - 1)) return 3;
         if (isTorchSupport(x, y, z + 1)) return 4;
         if (isTorchSupport(x, y - 1, z)) return 5;
-        return meta;
+        return -1;
     }
 
     private boolean isTorchSupport(final int x, final int y, final int z) {
@@ -221,13 +229,14 @@ public final class World {
         final Block block = Block.blocksList[id];
         if (block == null) return false;
         if (Block.opaqueCubeLookup[id]) return true;
-        return id == Block.fence.blockID
-                || id == Block.fenceGate.blockID
-                || id == Block.glass.blockID
-                || id == Block.stairCompactCobblestone.blockID
+        if (id == Block.fence.blockID || id == Block.glass.blockID) return true;
+        if (id == Block.stairCompactCobblestone.blockID
                 || id == Block.stairCompactPlanks.blockID
                 || id == Block.stairsNetherBrick.blockID
-                || id == Block.stairsStoneBrickSmooth.blockID;
+                || id == Block.stairsStoneBrickSmooth.blockID) {
+            return (getBlockMetadata(x, y, z) & 4) != 0;
+        }
+        return false;
     }
 
     private void refreshLegacyConnectables(final int x, final int y, final int z) {
@@ -245,7 +254,18 @@ public final class World {
             final int meta = getBlockMetadata(x, y, z);
             if (meta == 0 || meta == 15) {
                 final int oriented = normalizePlacementMetadata(x, y, z, id, meta);
-                if (oriented != meta) writeModernBlockData(x, y, z, id, oriented);
+                if (oriented < 0) {
+                    legacyIds.remove(blockKey(x, y, z));
+                    legacyMetadata.remove(blockKey(x, y, z));
+                    access.setType(x, y, z, org.bukkit.Material.AIR, false);
+                } else if (oriented != meta) {
+                    legacyMetadata.put(blockKey(x, y, z), oriented);
+                    writeModernBlockData(x, y, z, id, oriented);
+                }
+            } else if (!torchSupportMatchesMetadata(x, y, z, meta)) {
+                legacyIds.remove(blockKey(x, y, z));
+                legacyMetadata.remove(blockKey(x, y, z));
+                access.setType(x, y, z, org.bukkit.Material.AIR, false);
             }
             return;
         }
@@ -263,6 +283,17 @@ public final class World {
         multipleFacing.setFace(BlockFace.WEST, west);
         multipleFacing.setFace(BlockFace.EAST, east);
         access.setBlockData(x, y, z, data, false);
+    }
+
+    private boolean torchSupportMatchesMetadata(final int x, final int y, final int z, final int meta) {
+        return switch (meta & 7) {
+            case 1 -> isTorchSupport(x - 1, y, z);
+            case 2 -> isTorchSupport(x + 1, y, z);
+            case 3 -> isTorchSupport(x, y, z - 1);
+            case 4 -> isTorchSupport(x, y, z + 1);
+            case 5 -> isTorchSupport(x, y - 1, z);
+            default -> false;
+        };
     }
 
     private boolean legacyConnects(final int id, final int x, final int y, final int z) {
