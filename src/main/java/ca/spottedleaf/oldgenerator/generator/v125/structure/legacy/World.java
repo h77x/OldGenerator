@@ -483,10 +483,10 @@ public final class World {
         final BlockData data = access.getBlockData(x, y, z);
         if (!(data instanceof MultipleFacing vine)) return;
 
-        final boolean north = Block.vine.canPlaceBlockOnSide(this, x, y, z, 3);
-        final boolean east = Block.vine.canPlaceBlockOnSide(this, x, y, z, 4);
-        final boolean south = Block.vine.canPlaceBlockOnSide(this, x, y, z, 2);
-        final boolean west = Block.vine.canPlaceBlockOnSide(this, x, y, z, 5);
+        final boolean north = canVineAttachOnSide(x, y, z, 3);
+        final boolean east = canVineAttachOnSide(x, y, z, 4);
+        final boolean south = canVineAttachOnSide(x, y, z, 2);
+        final boolean west = canVineAttachOnSide(x, y, z, 5);
         final int meta = (north ? 1 : 0) | (east ? 2 : 0) | (south ? 4 : 0) | (west ? 8 : 0);
         final long key = blockKey(x, y, z);
 
@@ -505,6 +505,21 @@ public final class World {
         legacyIds.put(key, Block.vine.blockID);
         legacyMetadata.put(key, meta);
         access.setBlockData(x, y, z, vine, false);
+    }
+
+    private boolean canVineAttachOnSide(final int x, final int y, final int z, final int side) {
+        final int neighbourId;
+        switch (side) {
+            case 2 -> neighbourId = getBlockId(x, y, z + 1);
+            case 3 -> neighbourId = getBlockId(x, y, z - 1);
+            case 4 -> neighbourId = getBlockId(x + 1, y, z);
+            case 5 -> neighbourId = getBlockId(x - 1, y, z);
+            default -> { return false; }
+        }
+        // Tree generation in 1.2.5 explicitly hangs vines from leaf blocks,
+        // while the standalone vine generator only accepts normal solid supports.
+        return neighbourId == Block.leaves.blockID
+                || Block.vine.canPlaceBlockOnSide(this, x, y, z, side);
     }
 
     private void writeModernBlockData(final int x, final int y, final int z, final int id, final int meta) {
