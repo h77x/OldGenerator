@@ -177,7 +177,7 @@ public final class World {
             return;
         }
 
-        final org.bukkit.Material material = modernMaterial(id, meta, block.material);
+        final int stateMeta = normalizePlacementMetadata(x, y, z, id, meta);
         final long key = blockKey(x, y, z);
         if (id == Block.air.blockID) {
             legacyIds.remove(key);
@@ -186,8 +186,6 @@ public final class World {
             legacyIds.put(key, id);
             legacyMetadata.put(key, stateMeta >= 0 ? stateMeta : meta);
         }
-
-        final int stateMeta = normalizePlacementMetadata(x, y, z, id, meta);
         if (id == Block.torchWood.blockID && (meta == 0 || meta == 15) && stateMeta < 0) {
             legacyIds.remove(key);
             legacyMetadata.remove(key);
