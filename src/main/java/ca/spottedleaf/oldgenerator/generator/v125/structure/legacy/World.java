@@ -519,7 +519,9 @@ public final class World {
                 && !isRailBlock(getBlockId(x - 1, y, z))
                 && !isRailBlock(getBlockId(x + 1, y, z))
                 && !isRailBlock(getBlockId(x, y, z - 1))
-                && !isRailBlock(getBlockId(x, y, z + 1))) {
+                && !isRailBlock(getBlockId(x, y, z + 1))
+                && !isRailBlock(getBlockId(x, y - 1, z))
+                && !isRailBlock(getBlockId(x, y + 1, z))) {
             return;
         }
         refreshLegacyRail(x, y, z);
@@ -527,6 +529,8 @@ public final class World {
         refreshLegacyRail(x + 1, y, z);
         refreshLegacyRail(x, y, z - 1);
         refreshLegacyRail(x, y, z + 1);
+        refreshLegacyRail(x, y - 1, z);
+        refreshLegacyRail(x, y + 1, z);
     }
 
     private void refreshLegacyRail(final int x, final int y, final int z) {
