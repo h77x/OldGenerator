@@ -271,7 +271,7 @@ public final class World {
         if (id == Block.fence.blockID) {
             if (neighbour == Block.fence.blockID || neighbour == Block.fenceGate.blockID) return true;
             final Block block = neighbour >= 0 && neighbour < Block.blocksList.length ? Block.blocksList[neighbour] : null;
-            return block != null && block.blockMaterial.isOpaque() && block.renderAsNormalBlock() && neighbour != Block.pumpkin.blockID;
+            return block != null && Block.opaqueCubeLookup[neighbour] && neighbour != Block.pumpkin.blockID;
         }
         if (id == Block.thinGlass.blockID) {
             if (neighbour == Block.thinGlass.blockID || neighbour == Block.fenceIron.blockID) return true;
