@@ -26,9 +26,15 @@ public final class V125StructureGenerator {
                            final Random populationRandom) {
         final StructureState state = this.worlds.computeIfAbsent(seed, StructureState::new);
         final World world = new World(seed, access, biomes);
+        // Vanilla 1.2.5 MapGenStructure.generateStructuresInChunk() operates on
+        // the chunk's population window, which starts eight blocks into the chunk.
+        // Keeping this offset is important for structure/component intersection and
+        // for the ground-height calculations performed by village pieces.
+        final int populationMinX = (targetChunkX << 4) + 8;
+        final int populationMinZ = (targetChunkZ << 4) + 8;
         final StructureBoundingBox chunkBox = new StructureBoundingBox(
-                targetChunkX << 4, 0, targetChunkZ << 4,
-                (targetChunkX << 4) + 15, 127, (targetChunkZ << 4) + 15);
+                populationMinX, 0, populationMinZ,
+                populationMinX + 15, 127, populationMinZ + 15);
 
         boolean village = false;
 
