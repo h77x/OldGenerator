@@ -483,10 +483,14 @@ public final class World {
         final BlockData data = access.getBlockData(x, y, z);
         if (!(data instanceof MultipleFacing vine)) return;
 
-        final boolean north = canVineAttachOnSide(x, y, z, 3);
-        final boolean east = canVineAttachOnSide(x, y, z, 4);
-        final boolean south = canVineAttachOnSide(x, y, z, 2);
-        final boolean west = canVineAttachOnSide(x, y, z, 5);
+        final boolean north = vine.hasFace(BlockFace.NORTH)
+                && canVineAttachOnSide(x, y, z, 3);
+        final boolean east = vine.hasFace(BlockFace.EAST)
+                && canVineAttachOnSide(x, y, z, 4);
+        final boolean south = vine.hasFace(BlockFace.SOUTH)
+                && canVineAttachOnSide(x, y, z, 2);
+        final boolean west = vine.hasFace(BlockFace.WEST)
+                && canVineAttachOnSide(x, y, z, 5);
         final int meta = (north ? 1 : 0) | (east ? 2 : 0) | (south ? 4 : 0) | (west ? 8 : 0);
         final long key = blockKey(x, y, z);
 
