@@ -11,6 +11,7 @@ public final class V125Ravine {
     private final int range=8;
     private final float[] sizeTable=new float[1024];
     public V125Ravine(final long seed){this.seed=seed;this.rand=new Random();}
+    long getSeed(){return this.seed;}
     public void generate(final int targetX,final int targetZ,final ChunkGenerator.ChunkData data,final V125BiomeSource biomes){
         rand.setSeed(seed);long a=rand.nextLong(),b=rand.nextLong();
         for(int cx=targetX-range;cx<=targetX+range;cx++)for(int cz=targetZ-range;cz<=targetZ+range;cz++){
