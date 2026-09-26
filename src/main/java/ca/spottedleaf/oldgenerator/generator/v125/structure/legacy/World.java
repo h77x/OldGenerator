@@ -184,7 +184,7 @@ public final class World {
             legacyMetadata.remove(key);
         } else {
             legacyIds.put(key, id);
-            legacyMetadata.put(key, meta);
+            legacyMetadata.put(key, stateMeta >= 0 ? stateMeta : meta);
         }
 
         final int stateMeta = normalizePlacementMetadata(x, y, z, id, meta);
