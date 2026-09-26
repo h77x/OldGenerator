@@ -7,6 +7,9 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.MultipleFacing;
+import org.bukkit.block.data.FaceAttachable;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.AttachedFace;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Slab;
@@ -551,16 +554,20 @@ public final class World {
                 });
             } else if (id == Block.rail.blockID && data instanceof Rail rail) {
                 final int shape = meta & 15;
+                // 1.2.5 rail metadata: 0=E/W, 1=N/S, 2..5 ascending,
+                // 6..9 corners. The old metadata is not offset by one.
                 rail.setShape(switch (shape) {
-                    case 1 -> Rail.Shape.ASCENDING_EAST;
-                    case 2 -> Rail.Shape.ASCENDING_WEST;
-                    case 3 -> Rail.Shape.ASCENDING_NORTH;
-                    case 4 -> Rail.Shape.ASCENDING_SOUTH;
-                    case 5 -> Rail.Shape.SOUTH_EAST;
-                    case 6 -> Rail.Shape.SOUTH_WEST;
-                    case 7 -> Rail.Shape.NORTH_WEST;
-                    case 8 -> Rail.Shape.NORTH_EAST;
-                    default -> (shape == 0 ? Rail.Shape.NORTH_SOUTH : Rail.Shape.EAST_WEST);
+                    case 0 -> Rail.Shape.EAST_WEST;
+                    case 1 -> Rail.Shape.NORTH_SOUTH;
+                    case 2 -> Rail.Shape.ASCENDING_EAST;
+                    case 3 -> Rail.Shape.ASCENDING_WEST;
+                    case 4 -> Rail.Shape.ASCENDING_NORTH;
+                    case 5 -> Rail.Shape.ASCENDING_SOUTH;
+                    case 6 -> Rail.Shape.SOUTH_EAST;
+                    case 7 -> Rail.Shape.SOUTH_WEST;
+                    case 8 -> Rail.Shape.NORTH_WEST;
+                    case 9 -> Rail.Shape.NORTH_EAST;
+                    default -> Rail.Shape.EAST_WEST;
                 });
             } else if ((id == Block.doorWood.blockID || id == Block.doorSteel.blockID) && data instanceof Door door) {
                 final boolean top = (meta & 8) != 0;
@@ -629,6 +636,9 @@ public final class World {
                     case 4 -> BlockFace.SOUTH;
                     default -> BlockFace.NORTH;
                 });
+                if (data instanceof FaceAttachable attachable) {
+                    attachable.setAttachedFace(AttachedFace.WALL);
+                }
             } else if (id == Block.pumpkin.blockID && data instanceof Directional directional) {
                 directional.setFacing(switch (meta & 3) {
                     case 0 -> BlockFace.SOUTH;
@@ -782,6 +792,20 @@ public final class World {
                 final int variant = slabVariant(access.getType(x, y, z));
                 if (id == Block.stairDouble.blockID) return variant;
                 return variant | (slab.getType() == Slab.Type.TOP ? 8 : 0);
+            }
+            if (id == Block.rail.blockID && data instanceof Rail rail) {
+                return switch (rail.getShape()) {
+                    case EAST_WEST -> 0;
+                    case NORTH_SOUTH -> 1;
+                    case ASCENDING_EAST -> 2;
+                    case ASCENDING_WEST -> 3;
+                    case ASCENDING_NORTH -> 4;
+                    case ASCENDING_SOUTH -> 5;
+                    case SOUTH_EAST -> 6;
+                    case SOUTH_WEST -> 7;
+                    case NORTH_WEST -> 8;
+                    case NORTH_EAST -> 9;
+                };
             }
             if ((id == Block.doorWood.blockID || id == Block.doorSteel.blockID)
                     && data instanceof Door door) {
