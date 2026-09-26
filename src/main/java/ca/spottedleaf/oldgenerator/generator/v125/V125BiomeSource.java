@@ -88,6 +88,10 @@ public final class V125BiomeSource {
         return BukkitBiomeMapper.map(id);
     }
 
+    public int fromBukkit(final Biome biome) {
+        return BukkitBiomeMapper.fromBukkit(biome);
+    }
+
     public List<Biome> getUsedBukkitBiomes() {
         final Set<Biome> result = new LinkedHashSet<>();
         for (int id = 0; id < 23; ++id) {
@@ -148,6 +152,7 @@ public final class V125BiomeSource {
 
     private static final class BukkitBiomeMapper {
         private static final Map<Integer,String[]> names=new HashMap<>();
+        private static final Map<Biome, Integer> reverse=new HashMap<>();
         static{
             names.put(0,new String[]{"OCEAN"});
             names.put(1,new String[]{"PLAINS"});
@@ -170,11 +175,24 @@ public final class V125BiomeSource {
             names.put(20,new String[]{"WINDSWEPT_HILLS","MOUNTAINS"});
             names.put(21,new String[]{"JUNGLE"});
             names.put(22,new String[]{"JUNGLE"});
+
+            for (final Map.Entry<Integer, String[]> entry : names.entrySet()) {
+                for (final String name : entry.getValue()) {
+                    try {
+                        reverse.putIfAbsent(Biome.valueOf(name), entry.getKey());
+                    } catch (final IllegalArgumentException ignored) {
+                    }
+                }
+            }
         }
         static Biome map(final int id){
             final String[] candidates=names.get(id);
             if(candidates!=null) for(String name:candidates) try{return Biome.valueOf(name);}catch(IllegalArgumentException ignored){}
             return Biome.PLAINS;
+        }
+        static int fromBukkit(final Biome biome) {
+            final Integer id = reverse.get(biome);
+            return id == null ? 1 : id;
         }
     }
 }
