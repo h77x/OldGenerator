@@ -626,15 +626,16 @@ public final class World {
         final BlockData data = access.getBlockData(x, y, z);
         if (!(data instanceof MultipleFacing vine)) return;
 
-        final boolean north = vine.hasFace(BlockFace.NORTH)
-                && canVineAttachOnSide(x, y, z, 3);
-        final boolean east = vine.hasFace(BlockFace.EAST)
-                && canVineAttachOnSide(x, y, z, 4);
+        // 1.2.5 vine bits: 1=south, 2=west, 4=north, 8=east.
         final boolean south = vine.hasFace(BlockFace.SOUTH)
                 && canVineAttachOnSide(x, y, z, 2);
         final boolean west = vine.hasFace(BlockFace.WEST)
                 && canVineAttachOnSide(x, y, z, 5);
-        final int meta = (north ? 1 : 0) | (east ? 2 : 0) | (south ? 4 : 0) | (west ? 8 : 0);
+        final boolean north = vine.hasFace(BlockFace.NORTH)
+                && canVineAttachOnSide(x, y, z, 3);
+        final boolean east = vine.hasFace(BlockFace.EAST)
+                && canVineAttachOnSide(x, y, z, 4);
+        final int meta = (south ? 1 : 0) | (west ? 2 : 0) | (north ? 4 : 0) | (east ? 8 : 0);
         final long key = blockKey(x, y, z);
 
         vine.setFace(BlockFace.NORTH, north);
@@ -841,10 +842,11 @@ public final class World {
                 });
                 gate.setOpen((meta & 4) != 0);
             } else if (id == Block.vine.blockID && data instanceof org.bukkit.block.data.MultipleFacing vine) {
-                vine.setFace(BlockFace.NORTH, (meta & 1) != 0);
-                vine.setFace(BlockFace.EAST, (meta & 2) != 0);
-                vine.setFace(BlockFace.SOUTH, (meta & 4) != 0);
-                vine.setFace(BlockFace.WEST, (meta & 8) != 0);
+                // 1.2.5 vine bits: 1=south, 2=west, 4=north, 8=east.
+                vine.setFace(BlockFace.SOUTH, (meta & 1) != 0);
+                vine.setFace(BlockFace.WEST, (meta & 2) != 0);
+                vine.setFace(BlockFace.NORTH, (meta & 4) != 0);
+                vine.setFace(BlockFace.EAST, (meta & 8) != 0);
             } else if (id == Block.torchWood.blockID && data instanceof Directional directional
                     && material == org.bukkit.Material.WALL_TORCH) {
                 directional.setFacing(switch (meta & 7) {
