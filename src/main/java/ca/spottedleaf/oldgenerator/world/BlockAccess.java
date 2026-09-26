@@ -3,6 +3,7 @@ package ca.spottedleaf.oldgenerator.world;
 import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 public interface BlockAccess {
@@ -19,6 +20,8 @@ public interface BlockAccess {
     }
 
     public Material getType(final int x, final int y, final int z);
+
+    public Biome getBiome(final int x, final int y, final int z);
 
     public void setType(final int x, final int y, final int z, final Material material);
 
