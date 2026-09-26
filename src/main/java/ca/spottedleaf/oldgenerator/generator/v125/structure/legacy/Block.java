@@ -117,9 +117,9 @@ public final class Block {
     }
     public boolean canBlockStay(final World world, final int x, final int y, final int z) {
         final int below = world.getBlockId(x, y - 1, z);
-        if (this == cactus) return below == sand.blockID;
+        if (this == cactus) return below == cactus.blockID || below == sand.blockID;
         if (this == reed) {
-            return (below == grass.blockID || below == dirt.blockID || below == sand.blockID);
+            return below == reed.blockID || below == grass.blockID || below == dirt.blockID || below == sand.blockID;
         }
         if (this == deadBush) return below == sand.blockID || below == dirt.blockID;
         if (this == mushroomBrown || this == mushroomRed) return below == grass.blockID || below == dirt.blockID || below == mycelium.blockID;

@@ -6,7 +6,10 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.MultipleFacing;
+import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.Orientable;
+import org.bukkit.block.data.type.Slab;
 import org.bukkit.block.data.type.Door;
 import org.bukkit.block.data.Rail;
 import org.bukkit.block.data.type.Stairs;
@@ -184,12 +187,105 @@ public final class World {
             legacyMetadata.put(key, meta);
         }
 
-        final BlockData data = createBlockData(id, meta, material);
+        final int stateMeta = normalizePlacementMetadata(x, y, z, id, meta);
+        final org.bukkit.Material stateMaterial = modernMaterial(id, stateMeta, block.material);
+        final BlockData data = createBlockData(id, stateMeta, stateMaterial);
         if (data != null) {
             access.setBlockData(x, y, z, data, false);
         } else {
-            access.setType(x, y, z, material, false);
+            access.setType(x, y, z, stateMaterial, false);
         }
+
+        // Vanilla 1.2.5 recalculates attachable/connecting block shapes when
+        // neighbours change. Modern BlockData is static when physics is disabled,
+        // so refresh the affected neighbourhood explicitly.
+        refreshLegacyConnectables(x, y, z);
+    }
+
+    private int normalizePlacementMetadata(final int x, final int y, final int z,
+                                           final int id, final int meta) {
+        if (id != Block.torchWood.blockID || (meta != 0 && meta != 15)) return meta;
+
+        // BlockTorch.onBlockAdded() in 1.2.5 checks these supports in this exact order.
+        if (isTorchSupport(x - 1, y, z)) return 1;
+        if (isTorchSupport(x + 1, y, z)) return 2;
+        if (isTorchSupport(x, y, z - 1)) return 3;
+        if (isTorchSupport(x, y, z + 1)) return 4;
+        if (isTorchSupport(x, y - 1, z)) return 5;
+        return meta;
+    }
+
+    private boolean isTorchSupport(final int x, final int y, final int z) {
+        final int id = getBlockId(x, y, z);
+        if (id < 0 || id >= Block.blocksList.length) return false;
+        final Block block = Block.blocksList[id];
+        if (block == null) return false;
+        if (Block.opaqueCubeLookup[id]) return true;
+        return id == Block.fence.blockID
+                || id == Block.fenceGate.blockID
+                || id == Block.glass.blockID
+                || id == Block.stairCompactCobblestone.blockID
+                || id == Block.stairCompactPlanks.blockID
+                || id == Block.stairsNetherBrick.blockID
+                || id == Block.stairsStoneBrickSmooth.blockID;
+    }
+
+    private void refreshLegacyConnectables(final int x, final int y, final int z) {
+        refreshLegacyConnectable(x, y, z);
+        refreshLegacyConnectable(x - 1, y, z);
+        refreshLegacyConnectable(x + 1, y, z);
+        refreshLegacyConnectable(x, y, z - 1);
+        refreshLegacyConnectable(x, y, z + 1);
+    }
+
+    private void refreshLegacyConnectable(final int x, final int y, final int z) {
+        if (!access.isInRegion(x, y, z)) return;
+        final int id = getBlockId(x, y, z);
+        if (id == Block.torchWood.blockID) {
+            final int meta = getBlockMetadata(x, y, z);
+            if (meta == 0 || meta == 15) {
+                final int oriented = normalizePlacementMetadata(x, y, z, id, meta);
+                if (oriented != meta) writeModernBlockData(x, y, z, id, oriented);
+            }
+            return;
+        }
+        if (id != Block.fence.blockID && id != Block.fenceIron.blockID && id != Block.thinGlass.blockID) return;
+
+        final BlockData data = access.getBlockData(x, y, z);
+        if (!(data instanceof MultipleFacing multipleFacing)) return;
+
+        final boolean north = legacyConnects(id, x, y, z - 1);
+        final boolean south = legacyConnects(id, x, y, z + 1);
+        final boolean west = legacyConnects(id, x - 1, y, z);
+        final boolean east = legacyConnects(id, x + 1, y, z);
+        multipleFacing.setFace(BlockFace.NORTH, north);
+        multipleFacing.setFace(BlockFace.SOUTH, south);
+        multipleFacing.setFace(BlockFace.WEST, west);
+        multipleFacing.setFace(BlockFace.EAST, east);
+        access.setBlockData(x, y, z, data, false);
+    }
+
+    private boolean legacyConnects(final int id, final int x, final int y, final int z) {
+        final int neighbour = getBlockId(x, y, z);
+        if (neighbour == 0) return false;
+        if (id == Block.fence.blockID) {
+            if (neighbour == Block.fence.blockID || neighbour == Block.fenceGate.blockID) return true;
+            final Block block = neighbour >= 0 && neighbour < Block.blocksList.length ? Block.blocksList[neighbour] : null;
+            return block != null && block.blockMaterial.isOpaque() && block.renderAsNormalBlock() && neighbour != Block.pumpkin.blockID;
+        }
+        if (id == Block.thinGlass.blockID) {
+            if (neighbour == Block.thinGlass.blockID || neighbour == Block.fenceIron.blockID) return true;
+            return neighbour >= 0 && neighbour < Block.blocksList.length && Block.opaqueCubeLookup[neighbour];
+        }
+        return neighbour == Block.fenceIron.blockID;
+    }
+
+    private void writeModernBlockData(final int x, final int y, final int z, final int id, final int meta) {
+        final Block block = id >= 0 && id < Block.blocksList.length ? Block.blocksList[id] : null;
+        if (block == null) return;
+        final org.bukkit.Material material = modernMaterial(id, meta, block.material);
+        final BlockData data = createBlockData(id, meta, material);
+        if (data != null) access.setBlockData(x, y, z, data, false);
     }
 
     private static org.bukkit.Material modernMaterial(final int id, final int meta, final org.bukkit.Material fallback) {
@@ -226,7 +322,36 @@ public final class World {
             }
         }
         if (id == Block.tallGrass.blockID) {
-            return (meta & 1) == 1 ? org.bukkit.Material.FERN : org.bukkit.Material.SHORT_GRASS;
+            switch (meta & 3) {
+                case 0: return org.bukkit.Material.DEAD_BUSH;
+                case 2: return org.bukkit.Material.FERN;
+                default: return org.bukkit.Material.SHORT_GRASS;
+            }
+        }
+        if (id == Block.stairSingle.blockID || id == Block.stairDouble.blockID) {
+            switch (meta & 7) {
+                case 1: return org.bukkit.Material.SANDSTONE_SLAB;
+                case 2: return org.bukkit.Material.OAK_SLAB;
+                case 3: return org.bukkit.Material.COBBLESTONE_SLAB;
+                case 4: return org.bukkit.Material.BRICK_SLAB;
+                case 5: return org.bukkit.Material.STONE_BRICK_SLAB;
+                default: return org.bukkit.Material.STONE_SLAB;
+            }
+        }
+        if (id == Block.sandStone.blockID) {
+            switch (meta & 3) {
+                case 1: return org.bukkit.Material.CHISELED_SANDSTONE;
+                case 2: return org.bukkit.Material.SMOOTH_SANDSTONE;
+                default: return org.bukkit.Material.SANDSTONE;
+            }
+        }
+        if (id == Block.stoneBrick.blockID) {
+            switch (meta & 3) {
+                case 1: return org.bukkit.Material.MOSSY_STONE_BRICKS;
+                case 2: return org.bukkit.Material.CRACKED_STONE_BRICKS;
+                case 3: return org.bukkit.Material.CHISELED_STONE_BRICKS;
+                default: return org.bukkit.Material.STONE_BRICKS;
+            }
         }
         if (id == Block.torchWood.blockID) {
             return meta >= 1 && meta <= 4 ? org.bukkit.Material.WALL_TORCH : org.bukkit.Material.TORCH;
@@ -324,6 +449,21 @@ public final class World {
                     case 3 -> BlockFace.NORTH;
                     default -> BlockFace.SOUTH;
                 });
+            } else if (id == Block.crops.blockID && data instanceof Ageable ageable) {
+                ageable.setAge(Math.max(0, Math.min(ageable.getMaximumAge(), meta & 7)));
+            } else if (id == Block.snow.blockID && data instanceof org.bukkit.block.data.BlockData) {
+                try {
+                    final org.bukkit.block.data.type.Snow snow = (org.bukkit.block.data.type.Snow)data;
+                    snow.setLayers(Math.max(1, Math.min(8, (meta & 7) + 1)));
+                } catch (Throwable ignored) {
+                }
+            } else if ((id == Block.stairSingle.blockID || id == Block.stairDouble.blockID)
+                    && data instanceof Slab slab) {
+                if (id == Block.stairDouble.blockID) {
+                    slab.setType(Slab.Type.DOUBLE);
+                } else {
+                    slab.setType((meta & 8) != 0 ? Slab.Type.TOP : Slab.Type.BOTTOM);
+                }
             } else if (id == Block.chest.blockID && data instanceof org.bukkit.block.data.type.Chest chest) {
                 chest.setFacing(switch (meta & 7) {
                     case 2 -> BlockFace.NORTH;
@@ -483,6 +623,17 @@ public final class World {
                 if (material.name().startsWith("BIRCH_")) return 2;
                 if (material.name().startsWith("JUNGLE_")) return 3;
             }
+            if (id == Block.crops.blockID && data instanceof Ageable ageable) {
+                return ageable.getAge();
+            }
+            if (id == Block.snow.blockID && data instanceof org.bukkit.block.data.type.Snow snow) {
+                return Math.max(0, snow.getLayers() - 1);
+            }
+            if ((id == Block.stairSingle.blockID || id == Block.stairDouble.blockID) && data instanceof Slab slab) {
+                final int variant = slabVariant(access.getType(x, y, z));
+                if (id == Block.stairDouble.blockID) return variant;
+                return variant | (slab.getType() == Slab.Type.TOP ? 8 : 0);
+            }
             if ((id == Block.doorWood.blockID || id == Block.doorSteel.blockID)
                     && data instanceof Door door) {
                 if (door.getHalf() == Bisected.Half.TOP) {
@@ -501,6 +652,18 @@ public final class World {
         }
         return 0;
     }
+
+    private static int slabVariant(final org.bukkit.Material material) {
+        switch (material) {
+            case SANDSTONE_SLAB: return 1;
+            case OAK_SLAB: return 2;
+            case COBBLESTONE_SLAB: return 3;
+            case BRICK_SLAB: return 4;
+            case STONE_BRICK_SLAB: return 5;
+            default: return 0;
+        }
+    }
+
     public void notifyBlocksOfNeighborChange(int x,int y,int z,int id){}
     public static final class WorldProvider { public int getAverageGroundLevel(){return 64;} }
 }
