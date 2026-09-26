@@ -392,7 +392,14 @@ public final class World {
         }
         return 0;
     }
-    public void spawnEntityInWorld(EntityVillager v){}
+    public void spawnEntityInWorld(final EntityVillager villager) {
+        this.access.spawnVillager(
+                villager.getX(),
+                villager.getY(),
+                villager.getZ(),
+                villager.getProfession()
+        );
+    }
     public boolean isBlockNormalCube(int x,int y,int z){return Block.opaqueCubeLookup[getBlockId(x,y,z)];}
     public int getSavedLightValue(EnumSkyBlock skyBlock, int x, int y, int z){ return skyBlock == EnumSkyBlock.Sky ? 15 : 0; }
     public BiomeGenBase getBiomeGenForCoords(int x, int z){
