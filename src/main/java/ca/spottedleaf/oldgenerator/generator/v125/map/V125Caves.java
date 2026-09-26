@@ -13,7 +13,7 @@ public final class V125Caves {
     private final int range=8;
 
     public V125Caves(final long worldSeed){this.worldSeed=worldSeed;this.rand=new Random();}
-    long getSeed(){return this.worldSeed;}
+    public long getSeed(){return this.worldSeed;}
     public void generate(final int targetChunkX,final int targetChunkZ,final ChunkGenerator.ChunkData data,final V125BiomeSource biomes){
         this.rand.setSeed(worldSeed);
         final long a=this.rand.nextLong(), b=this.rand.nextLong();
