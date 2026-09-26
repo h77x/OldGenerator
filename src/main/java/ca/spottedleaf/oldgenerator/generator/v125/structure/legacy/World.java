@@ -9,7 +9,7 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.block.data.FaceAttachable;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.AttachedFace;
+import org.bukkit.block.data.FaceAttachable.AttachedFace;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Slab;
