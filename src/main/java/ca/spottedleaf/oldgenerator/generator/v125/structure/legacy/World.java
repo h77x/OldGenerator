@@ -208,6 +208,7 @@ public final class World {
         // neighbours change. Modern BlockData is static when physics is disabled,
         // so refresh the affected neighbourhood explicitly.
         refreshLegacyConnectables(x, y, z);
+        refreshLegacyStairShapes(x, y, z);
     }
 
     private int normalizePlacementMetadata(final int x, final int y, final int z,
@@ -283,6 +284,99 @@ public final class World {
         multipleFacing.setFace(BlockFace.WEST, west);
         multipleFacing.setFace(BlockFace.EAST, east);
         access.setBlockData(x, y, z, data, false);
+    }
+
+    private void refreshLegacyStairShapes(final int x, final int y, final int z) {
+        refreshLegacyStairShape(x, y, z);
+        refreshLegacyStairShape(x - 1, y, z);
+        refreshLegacyStairShape(x + 1, y, z);
+        refreshLegacyStairShape(x, y, z - 1);
+        refreshLegacyStairShape(x, y, z + 1);
+    }
+
+    /**
+     * Reconstructs the corner shape that 1.2.5 rendered from neighbouring stair
+     * blocks. Modern clients expose this as an explicit Stairs.Shape property;
+     * leaving it at STRAIGHT makes old village roofs and stair runs look broken.
+     */
+    private void refreshLegacyStairShape(final int x, final int y, final int z) {
+        if (!access.isInRegion(x, y, z)) return;
+        final BlockData current = access.getBlockData(x, y, z);
+        if (!(current instanceof Stairs stairs)) return;
+        final BlockFace facing = stairs.getFacing();
+        final Bisected.Half half = stairs.getHalf();
+
+        final Stairs.Shape inner = shapeFromNeighbour(x + facing.getModX(), y, z + facing.getModZ(), half, facing, true);
+        if (inner != null) {
+            stairs.setShape(inner);
+            access.setBlockData(x, y, z, stairs, false);
+            return;
+        }
+        final BlockFace opposite = oppositeHorizontal(facing);
+        final Stairs.Shape outer = shapeFromNeighbour(x + opposite.getModX(), y, z + opposite.getModZ(), half, facing, false);
+        if (outer != null) {
+            stairs.setShape(outer);
+            access.setBlockData(x, y, z, stairs, false);
+            return;
+        }
+        if (stairs.getShape() != Stairs.Shape.STRAIGHT) {
+            stairs.setShape(Stairs.Shape.STRAIGHT);
+            access.setBlockData(x, y, z, stairs, false);
+        }
+    }
+
+    private Stairs.Shape shapeFromNeighbour(final int x, final int y, final int z,
+                                            final Bisected.Half half, final BlockFace facing,
+                                            final boolean inner) {
+        if (!access.isInRegion(x, y, z)) return null;
+        final BlockData neighbourData = access.getBlockData(x, y, z);
+        if (!(neighbourData instanceof Stairs neighbour) || neighbour.getHalf() != half) return null;
+        final BlockFace neighbourFacing = neighbour.getFacing();
+        if (!isHorizontal(neighbourFacing) || neighbourFacing.getModX() == facing.getModX()
+                && neighbourFacing.getModZ() == facing.getModZ()) return null;
+        if (neighbourFacing.getModX() == -facing.getModX()
+                && neighbourFacing.getModZ() == -facing.getModZ()) return null;
+
+        final BlockFace clockwise = clockwiseHorizontal(facing);
+        final BlockFace counterClockwise = counterClockwiseHorizontal(facing);
+        if (neighbourFacing == clockwise) {
+            return inner ? Stairs.Shape.INNER_RIGHT : Stairs.Shape.OUTER_RIGHT;
+        }
+        if (neighbourFacing == counterClockwise) {
+            return inner ? Stairs.Shape.INNER_LEFT : Stairs.Shape.OUTER_LEFT;
+        }
+        return null;
+    }
+
+    private static boolean isHorizontal(final BlockFace face) {
+        return face == BlockFace.NORTH || face == BlockFace.EAST || face == BlockFace.SOUTH || face == BlockFace.WEST;
+    }
+
+    private static BlockFace oppositeHorizontal(final BlockFace face) {
+        return switch (face) {
+            case NORTH -> BlockFace.SOUTH;
+            case SOUTH -> BlockFace.NORTH;
+            case EAST -> BlockFace.WEST;
+            default -> BlockFace.EAST;
+        };
+    }
+
+    private static BlockFace clockwiseHorizontal(final BlockFace face) {
+        return switch (face) {
+            case NORTH -> BlockFace.EAST;
+            case EAST -> BlockFace.SOUTH;
+            case SOUTH -> BlockFace.WEST;
+            default -> BlockFace.NORTH;
+        };
+    }
+
+    private static BlockFace counterClockwiseHorizontal(final BlockFace face) {
+        return switch (face) {
+            case NORTH -> BlockFace.WEST;
+            case WEST -> BlockFace.SOUTH;
+            case SOUTH -> BlockFace.EAST;
+            default -> BlockFace.NORTH;
+        };
     }
 
     private boolean torchSupportMatchesMetadata(final int x, final int y, final int z, final int meta) {
