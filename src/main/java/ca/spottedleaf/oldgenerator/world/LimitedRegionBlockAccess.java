@@ -66,6 +66,19 @@ public final class LimitedRegionBlockAccess implements BlockAccess {
         return this.isInRegion(x, y, z) ? this.region.getBlockState(x, y, z) : null;
     }
 
+    @Override
+    public boolean spawnVillager(final double x, final double y, final double z, final int profession) {
+        final int blockX = (int)Math.floor(x);
+        final int blockY = (int)Math.floor(y);
+        final int blockZ = (int)Math.floor(z);
+        if (!this.isInRegion(blockX, blockY, blockZ)) return false;
+        this.region.spawnEntity(
+                new org.bukkit.Location(this.region.getWorld(), x, y, z),
+                org.bukkit.entity.EntityType.VILLAGER
+        );
+        return true;
+    }
+
     @Override public byte getLightFromSky(final int x, final int y, final int z) { return 0; }
     @Override public byte getLightFromBlocks(final int x, final int y, final int z) { return 0; }
     @Override public byte getLightLevel(final int x, final int y, final int z) { return 0; }
