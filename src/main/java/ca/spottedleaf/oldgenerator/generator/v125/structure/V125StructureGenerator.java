@@ -24,18 +24,12 @@ public final class V125StructureGenerator {
     public Result generate(final long seed, final int targetChunkX, final int targetChunkZ,
                            final BlockAccess access, final V125BiomeSource biomes,
                            final Random populationRandom) {
-        return this.generate(seed, targetChunkX, targetChunkZ, access, biomes,
-                populationRandom, new World(seed, access, biomes));
-    }
-
-    /**
-     * Generates into the caller's legacy world facade so the structure writes and
-     * later population writes share the same legacy metadata/attachment tracker.
-     */
-    public Result generate(final long seed, final int targetChunkX, final int targetChunkZ,
-                           final BlockAccess access, final V125BiomeSource biomes,
-                           final Random populationRandom, final World world) {
         final StructureState state = this.worlds.computeIfAbsent(seed, StructureState::new);
+        final World world = new World(seed, access, biomes);
+        // Structure components can be ordered independently of their supporting
+        // blocks. Keep attachment-sensitive blocks until the complete structure
+        // population pass has finished, matching the legacy neighbour-update model.
+        world.setAttachmentValidationDeferred(true);
         // Vanilla 1.2.5 MapGenStructure.generateStructuresInChunk() operates on
         // the chunk's population window, which starts eight blocks into the chunk.
         // Keeping this offset is important for structure/component intersection and
@@ -133,6 +127,7 @@ public final class V125StructureGenerator {
             }
         }
 
+        world.validateGeneratedAttachments(populationMinX, populationMinZ, populationMinX + 15, populationMinZ + 15);
         return new Result(village);
     }
 
