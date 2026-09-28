@@ -36,9 +36,20 @@ public final class World {
     private final Map<Long, Integer> legacyIds = new HashMap<>();
     private final Map<Long, Integer> legacyMetadata = new HashMap<>();
     private LeafDistanceCalculator leafDistanceCalculator;
+    private boolean deferAttachmentValidation;
 
     public void setLeafDistanceCalculator(final LeafDistanceCalculator leafDistanceCalculator) {
         this.leafDistanceCalculator = leafDistanceCalculator;
+    }
+
+    /**
+     * Structure pieces are generated in an arbitrary component order. A wall-attached
+     * block can therefore be written before the block it attaches to exists. Match
+     * vanilla's eventual neighbour-update result by deferring destructive validation
+     * until the populated chunk is complete.
+     */
+    public void setAttachmentValidationDeferred(final boolean deferred) {
+        this.deferAttachmentValidation = deferred;
     }
 
     public World(final long seed, final BlockAccess access, final V125BiomeSource source){
@@ -196,7 +207,8 @@ public final class World {
             legacyIds.put(key, id);
             legacyMetadata.put(key, stateMeta >= 0 ? stateMeta : meta);
         }
-        if (id == Block.torchWood.blockID && (meta == 0 || meta == 15) && stateMeta < 0) {
+        if (id == Block.torchWood.blockID && (meta == 0 || meta == 15) && stateMeta < 0
+                && !deferAttachmentValidation) {
             legacyIds.remove(key);
             legacyMetadata.remove(key);
             access.setType(x, y, z, org.bukkit.Material.AIR, false);
@@ -235,21 +247,20 @@ public final class World {
         if (id != Block.torchWood.blockID || (meta != 0 && meta != 15)) return meta;
 
         // BlockTorch.onBlockAdded() in 1.2.5 checks these supports in this exact order.
-        if (isTorchSupport(x - 1, y, z)) return 1;
-        if (isTorchSupport(x + 1, y, z)) return 2;
-        if (isTorchSupport(x, y, z - 1)) return 3;
-        if (isTorchSupport(x, y, z + 1)) return 4;
-        if (isTorchSupport(x, y - 1, z)) return 5;
+        if (isTorchWallSupport(x - 1, y, z)) return 1;
+        if (isTorchWallSupport(x + 1, y, z)) return 2;
+        if (isTorchWallSupport(x, y, z - 1)) return 3;
+        if (isTorchWallSupport(x, y, z + 1)) return 4;
+        if (isTorchTopSupport(x, y - 1, z)) return 5;
         return -1;
     }
 
-    private boolean isTorchSupport(final int x, final int y, final int z) {
+    private boolean isTorchWallSupport(final int x, final int y, final int z) {
         final int id = getBlockId(x, y, z);
         if (id < 0 || id >= Block.blocksList.length) return false;
         final Block block = Block.blocksList[id];
         if (block == null) return false;
-        if (Block.opaqueCubeLookup[id]) return true;
-        if (id == Block.fence.blockID || id == Block.glass.blockID) return true;
+        if (Block.opaqueCubeLookup[id] || id == Block.glass.blockID) return true;
         if (id == Block.stairCompactCobblestone.blockID
                 || id == Block.stairCompactPlanks.blockID
                 || id == Block.stairsNetherBrick.blockID
@@ -257,6 +268,16 @@ public final class World {
             return (getBlockMetadata(x, y, z) & 4) != 0;
         }
         return false;
+    }
+
+    private boolean isTorchTopSupport(final int x, final int y, final int z) {
+        final int id = getBlockId(x, y, z);
+        if (id < 0 || id >= Block.blocksList.length) return false;
+        final Block block = Block.blocksList[id];
+        if (block == null) return false;
+        return Block.opaqueCubeLookup[id]
+                || id == Block.fence.blockID
+                || id == Block.glass.blockID;
     }
 
     private void refreshLegacyConnectables(final int x, final int y, final int z) {
@@ -279,10 +300,8 @@ public final class World {
         final int id = getBlockId(x, y, z);
         if (id == Block.ladder.blockID) {
             final int meta = getBlockMetadata(x, y, z);
-            if (!ladderSupportMatchesMetadata(x, y, z, meta)) {
-                legacyIds.remove(blockKey(x, y, z));
-                legacyMetadata.remove(blockKey(x, y, z));
-                access.setType(x, y, z, org.bukkit.Material.AIR, false);
+            if (!ladderSupportMatchesMetadata(x, y, z, meta) && !deferAttachmentValidation) {
+                removeLegacyBlock(x, y, z);
             }
             return;
         }
@@ -290,18 +309,14 @@ public final class World {
             final int meta = getBlockMetadata(x, y, z);
             if (meta == 0 || meta == 15) {
                 final int oriented = normalizePlacementMetadata(x, y, z, id, meta);
-                if (oriented < 0) {
-                    legacyIds.remove(blockKey(x, y, z));
-                    legacyMetadata.remove(blockKey(x, y, z));
-                    access.setType(x, y, z, org.bukkit.Material.AIR, false);
-                } else if (oriented != meta) {
+                if (oriented >= 0 && oriented != meta) {
                     legacyMetadata.put(blockKey(x, y, z), oriented);
                     writeModernBlockData(x, y, z, id, oriented);
+                } else if (oriented < 0 && !deferAttachmentValidation) {
+                    removeLegacyBlock(x, y, z);
                 }
-            } else if (!torchSupportMatchesMetadata(x, y, z, meta)) {
-                legacyIds.remove(blockKey(x, y, z));
-                legacyMetadata.remove(blockKey(x, y, z));
-                access.setType(x, y, z, org.bukkit.Material.AIR, false);
+            } else if (!torchSupportMatchesMetadata(x, y, z, meta) && !deferAttachmentValidation) {
+                removeLegacyBlock(x, y, z);
             }
             return;
         }
@@ -445,11 +460,11 @@ public final class World {
 
     private boolean torchSupportMatchesMetadata(final int x, final int y, final int z, final int meta) {
         return switch (meta & 7) {
-            case 1 -> isTorchSupport(x - 1, y, z);
-            case 2 -> isTorchSupport(x + 1, y, z);
-            case 3 -> isTorchSupport(x, y, z - 1);
-            case 4 -> isTorchSupport(x, y, z + 1);
-            case 5 -> isTorchSupport(x, y - 1, z);
+            case 1 -> isTorchWallSupport(x - 1, y, z);
+            case 2 -> isTorchWallSupport(x + 1, y, z);
+            case 3 -> isTorchWallSupport(x, y, z - 1);
+            case 4 -> isTorchWallSupport(x, y, z + 1);
+            case 5 -> isTorchTopSupport(x, y - 1, z);
             default -> false;
         };
     }
@@ -466,7 +481,11 @@ public final class World {
             if (neighbour == Block.thinGlass.blockID || neighbour == Block.fenceIron.blockID) return true;
             return neighbour >= 0 && neighbour < Block.blocksList.length && Block.opaqueCubeLookup[neighbour];
         }
-        return neighbour == Block.fenceIron.blockID;
+        if (id == Block.fenceIron.blockID) {
+            if (neighbour == Block.fenceIron.blockID) return true;
+            return neighbour >= 0 && neighbour < Block.blocksList.length && Block.opaqueCubeLookup[neighbour];
+        }
+        return false;
     }
 
     private static boolean isDoorBlock(final int id) {
@@ -647,10 +666,8 @@ public final class World {
         vine.setFace(BlockFace.SOUTH, south);
         vine.setFace(BlockFace.WEST, west);
 
-        if (meta == 0) {
-            legacyIds.remove(key);
-            legacyMetadata.remove(key);
-            access.setType(x, y, z, org.bukkit.Material.AIR, false);
+        if (meta == 0 && !deferAttachmentValidation) {
+            removeLegacyBlock(x, y, z);
             return;
         }
 
@@ -672,6 +689,185 @@ public final class World {
         // while the standalone vine generator only accepts normal solid supports.
         return neighbourId == Block.leaves.blockID
                 || Block.vine.canPlaceBlockOnSide(this, x, y, z, side);
+    }
+
+    private void removeLegacyBlock(final int x, final int y, final int z) {
+        final long key = blockKey(x, y, z);
+        legacyIds.remove(key);
+        legacyMetadata.remove(key);
+        access.setType(x, y, z, org.bukkit.Material.AIR, false);
+    }
+
+    private boolean buttonSupportMatchesMetadata(final int x, final int y, final int z, final int meta) {
+        return switch (meta & 7) {
+            case 1 -> isButtonSupport(x - 1, y, z);
+            case 2 -> isButtonSupport(x + 1, y, z);
+            case 3 -> isButtonSupport(x, y, z - 1);
+            case 4 -> isButtonSupport(x, y, z + 1);
+            default -> false;
+        };
+    }
+
+    private boolean isButtonSupport(final int x, final int y, final int z) {
+        final int id = getBlockId(x, y, z);
+        return id >= 0 && id < Block.blocksList.length
+                && Block.blocksList[id] != null
+                && (Block.opaqueCubeLookup[id] || id == Block.glass.blockID);
+    }
+
+    private static int decodeBlockX(final long key) {
+        return (int)(key >> 38);
+    }
+
+    private static int decodeBlockZ(final long key) {
+        int value = (int)((key >>> 12) & 0x3FFFFFFL);
+        if ((value & 0x2000000) != 0) value |= ~0x3FFFFFF;
+        return value;
+    }
+
+    private static int decodeBlockY(final long key) {
+        return (int)(key & 0xFFFL);
+    }
+
+    private boolean validateBlockStay(final int id, final int x, final int y, final int z) {
+        if (id == Block.crops.blockID) {
+            return getBlockId(x, y - 1, z) == Block.tilledField.blockID;
+        }
+        if (id == Block.waterlily.blockID) {
+            return getBlockId(x, y - 1, z) == Block.waterStill.blockID
+                    && getBlockMetadata(x, y - 1, z) == 0;
+        }
+        if (id == Block.pressurePlatePlanks.blockID) {
+            final int below = getBlockId(x, y - 1, z);
+            return below >= 0 && below < Block.blocksList.length && Block.opaqueCubeLookup[below];
+        }
+        if (id == Block.snow.blockID) {
+            final int below = getBlockId(x, y - 1, z);
+            return below != Block.air.blockID && below != Block.ice.blockID
+                    && below >= 0 && below < Block.blocksList.length
+                    && Block.blocksList[below] != null
+                    && Block.blocksList[below].blockMaterial.blocksMovement();
+        }
+        if (id == Block.sapling.blockID || id == Block.tallGrass.blockID
+                || id == Block.plantYellow.blockID || id == Block.plantRed.blockID
+                || id == Block.deadBush.blockID || id == Block.mushroomBrown.blockID
+                || id == Block.mushroomRed.blockID || id == Block.reed.blockID
+                || id == Block.cactus.blockID) {
+            final Block block = Block.blocksList[id];
+            return block != null && block.canBlockStay(this, x, y, z);
+        }
+        return true;
+    }
+
+    /**
+     * Final legacy neighbour-update pass for the generated target chunk. This is
+     * deliberately driven from blocks actually touched by the legacy generator
+     * rather than scanning all 128 block layers, keeping the fix cheap.
+     */
+    public void validateGeneratedAttachments(final int minX, final int minZ,
+                                              final int maxX, final int maxZ) {
+        deferAttachmentValidation = false;
+
+        final java.util.ArrayList<Long> keys = new java.util.ArrayList<>(legacyIds.keySet());
+        for (int pass = 0; pass < 3; ++pass) {
+            boolean changed = false;
+
+            for (final long key : keys) {
+                final Integer currentId = legacyIds.get(key);
+                if (currentId == null) continue;
+
+                final int x = decodeBlockX(key);
+                final int y = decodeBlockY(key);
+                final int z = decodeBlockZ(key);
+                if (x < minX || x > maxX || z < minZ || z > maxZ) continue;
+
+                switch (currentId) {
+                    case 50: { // torch
+                        final int meta = getBlockMetadata(x, y, z);
+                        if (meta == 0 || meta == 15) {
+                            final int oriented = normalizePlacementMetadata(x, y, z, Block.torchWood.blockID, meta);
+                            if (oriented < 0) {
+                                removeLegacyBlock(x, y, z);
+                                changed = true;
+                            } else {
+                                legacyMetadata.put(key, oriented);
+                                writeModernBlockData(x, y, z, Block.torchWood.blockID, oriented);
+                            }
+                        } else if (!torchSupportMatchesMetadata(x, y, z, meta)) {
+                            removeLegacyBlock(x, y, z);
+                            changed = true;
+                        }
+                        break;
+                    }
+                    case 65: { // ladder
+                        if (!ladderSupportMatchesMetadata(x, y, z, getBlockMetadata(x, y, z))) {
+                            removeLegacyBlock(x, y, z);
+                            changed = true;
+                        }
+                        break;
+                    }
+                    case 77: { // stone button
+                        final int meta = getBlockMetadata(x, y, z);
+                        if (!buttonSupportMatchesMetadata(x, y, z, meta)) {
+                            removeLegacyBlock(x, y, z);
+                            changed = true;
+                        } else {
+                            legacyMetadata.put(key, meta);
+                            writeModernBlockData(x, y, z, Block.button.blockID, meta);
+                        }
+                        break;
+                    }
+                    case 72: // oak pressure plate
+                    case 6:  // sapling
+                    case 31: // tall grass
+                    case 37: // yellow flower
+                    case 38: // red flower
+                    case 32: // dead bush
+                    case 39: // brown mushroom
+                    case 40: // red mushroom
+                    case 83: // sugar cane
+                    case 81: // cactus
+                    case 111: { // lily pad
+                        if (!validateBlockStay(currentId, x, y, z)) {
+                            removeLegacyBlock(x, y, z);
+                            changed = true;
+                        }
+                        break;
+                    }
+                    case 106: // vines
+                        refreshLegacyVine(x, y, z);
+                        break;
+                    case 85: // fence
+                    case 101: // iron bars
+                    case 102: // glass pane
+                        refreshLegacyConnectable(x, y, z);
+                        break;
+                    case 66: // rail
+                        refreshLegacyRail(x, y, z);
+                        break;
+                    case 64: // wooden door
+                    case 71: // iron door
+                        if (getBlockId(x, y, z) == currentId) {
+                            final int meta = getBlockMetadata(x, y, z);
+                            final int lowerY = (meta & 8) != 0 ? y - 1 : y;
+                            final int upperY = lowerY + 1;
+                            if (getBlockId(x, lowerY, z) != currentId
+                                    || getBlockId(x, upperY, z) != currentId) {
+                                removeLegacyBlock(x, lowerY, z);
+                                removeLegacyBlock(x, upperY, z);
+                                changed = true;
+                            } else {
+                                refreshLegacyDoorPair(x, y, z);
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            if (!changed) break;
+        }
     }
 
     private void writeModernBlockData(final int x, final int y, final int z, final int id, final int meta) {
@@ -792,9 +988,7 @@ public final class World {
                 }
             } else if (id == Block.ladder.blockID && data instanceof Directional directional) {
                 // Legacy ladder metadata identifies the support wall:
-                // 2=south, 3=north, 4=east, 5=west. Preserve that direction
-                // in Bukkit's wall-facing representation so the climbable face
-                // remains on the side opposite the supporting block.
+                // 2=south, 3=north, 4=east, 5=west.
                 directional.setFacing(switch (meta & 7) {
                     case 2 -> BlockFace.SOUTH;
                     case 3 -> BlockFace.NORTH;
@@ -859,11 +1053,13 @@ public final class World {
                 vine.setFace(BlockFace.EAST, (meta & 8) != 0);
             } else if (id == Block.torchWood.blockID && data instanceof Directional directional
                     && material == org.bukkit.Material.WALL_TORCH) {
+                // Legacy torch metadata is the direction the torch faces, with
+                // the supporting wall on the opposite side.
                 directional.setFacing(switch (meta & 7) {
-                    case 1 -> BlockFace.WEST;
-                    case 2 -> BlockFace.EAST;
-                    case 3 -> BlockFace.NORTH;
-                    default -> BlockFace.SOUTH;
+                    case 1 -> BlockFace.EAST;
+                    case 2 -> BlockFace.WEST;
+                    case 3 -> BlockFace.SOUTH;
+                    default -> BlockFace.NORTH;
                 });
             } else if (id == Block.crops.blockID && data instanceof Ageable ageable) {
                 ageable.setAge(Math.max(0, Math.min(ageable.getMaximumAge(), meta & 7)));
@@ -889,15 +1085,20 @@ public final class World {
                     default -> BlockFace.NORTH;
                 });
             } else if (id == Block.button.blockID && data instanceof Directional directional) {
+                // 1.2.5 button metadata matches the direction the button faces:
+                // 1=east, 2=west, 3=south, 4=north.
                 directional.setFacing(switch (meta & 7) {
-                    case 1 -> BlockFace.WEST;
-                    case 2 -> BlockFace.EAST;
-                    case 3 -> BlockFace.NORTH;
-                    case 4 -> BlockFace.SOUTH;
+                    case 1 -> BlockFace.EAST;
+                    case 2 -> BlockFace.WEST;
+                    case 3 -> BlockFace.SOUTH;
+                    case 4 -> BlockFace.NORTH;
                     default -> BlockFace.NORTH;
                 });
                 if (data instanceof FaceAttachable attachable) {
                     attachable.setAttachedFace(AttachedFace.WALL);
+                }
+                if (data instanceof org.bukkit.block.data.Powerable powerable) {
+                    powerable.setPowered((meta & 8) != 0);
                 }
             } else if (id == Block.pumpkin.blockID && data instanceof Directional directional) {
                 directional.setFacing(switch (meta & 3) {
@@ -1055,12 +1256,12 @@ public final class World {
             }
             if (id == Block.rail.blockID && data instanceof Rail rail) {
                 return switch (rail.getShape()) {
-                    case EAST_WEST -> 0;
-                    case NORTH_SOUTH -> 1;
-                    case ASCENDING_EAST -> 2;
-                    case ASCENDING_WEST -> 3;
-                    case ASCENDING_NORTH -> 4;
-                    case ASCENDING_SOUTH -> 5;
+                    case NORTH_SOUTH -> 0;
+                    case EAST_WEST -> 1;
+                    case ASCENDING_SOUTH -> 2;
+                    case ASCENDING_NORTH -> 3;
+                    case ASCENDING_EAST -> 4;
+                    case ASCENDING_WEST -> 5;
                     case SOUTH_EAST -> 6;
                     case SOUTH_WEST -> 7;
                     case NORTH_WEST -> 8;
