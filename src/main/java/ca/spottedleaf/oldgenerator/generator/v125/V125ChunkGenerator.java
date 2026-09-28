@@ -448,12 +448,16 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         final long oddZ = random.nextLong() / 2L * 2L + 1L;
         random.setSeed((long) chunkX * oddX + (long) chunkZ * oddZ ^ seed);
 
-        final V125StructureGenerator.Result structures =
-                this.structureGenerator.generate(seed, chunkX, chunkZ, access, this.biomeSource, random);
-        final int biomeId = this.biomeSource.fromBukkit(access.getBiome(blockX + 16, 64, blockZ + 16));
-        final boolean villageStart = structures.hasVillage();
         final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World legacyWorld =
                 new ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World(seed, access, this.biomeSource);
+        // Structures can write attachable blocks before their supporting piece is
+        // generated. Keep them alive until all structure/decorator writes are done.
+        legacyWorld.setAttachmentValidationDeferred(true);
+
+        final V125StructureGenerator.Result structures =
+                this.structureGenerator.generate(seed, chunkX, chunkZ, access, this.biomeSource, random, legacyWorld);
+        final int biomeId = this.biomeSource.fromBukkit(access.getBiome(blockX + 16, 64, blockZ + 16));
+        final boolean villageStart = structures.hasVillage();
 
         /*
          * ChunkProviderGenerate.populate():
@@ -484,6 +488,10 @@ public final class V125ChunkGenerator extends ChunkGenerator {
 
         decorateBiome(legacyWorld, access, random, biomeId, blockX, blockZ);
         freezeAndSnow(legacyWorld, blockX, blockZ);
+
+        // Apply the equivalent of the final legacy neighbour/update phase after
+        // every generator has had a chance to place its supporting blocks.
+        legacyWorld.validateGeneratedAttachments(blockX, blockZ, blockX + 15, blockZ + 15);
     }
 
     private void generateOres(final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World world,
