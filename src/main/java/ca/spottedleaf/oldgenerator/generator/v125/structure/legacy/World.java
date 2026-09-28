@@ -710,9 +710,16 @@ public final class World {
 
     private boolean isButtonSupport(final int x, final int y, final int z) {
         final int id = getBlockId(x, y, z);
+        // BlockButton in 1.2.5 is a wall-only attachment and requires a
+        // normal opaque cube on the supporting side.
         return id >= 0 && id < Block.blocksList.length
                 && Block.blocksList[id] != null
-                && (Block.opaqueCubeLookup[id] || id == Block.glass.blockID);
+                && Block.opaqueCubeLookup[id];
+    }
+
+    private boolean railSupportMatches(final int x, final int y, final int z) {
+        final int below = getBlockId(x, y - 1, z);
+        return below >= 0 && below < Block.blocksList.length && Block.opaqueCubeLookup[below];
     }
 
     private static int decodeBlockX(final long key) {
@@ -843,7 +850,12 @@ public final class World {
                         refreshLegacyConnectable(x, y, z);
                         break;
                     case 66: // rail
-                        refreshLegacyRail(x, y, z);
+                        if (!railSupportMatches(x, y, z)) {
+                            removeLegacyBlock(x, y, z);
+                            changed = true;
+                        } else {
+                            refreshLegacyRail(x, y, z);
+                        }
                         break;
                     case 64: // wooden door
                     case 71: // iron door
