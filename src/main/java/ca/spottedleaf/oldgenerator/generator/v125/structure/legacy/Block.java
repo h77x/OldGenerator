@@ -148,7 +148,17 @@ public final class Block {
             return below == cactus.blockID || below == sand.blockID;
         }
         if (this == reed) {
-            return below == reed.blockID || below == grass.blockID || below == dirt.blockID || below == sand.blockID;
+            if (below == reed.blockID) return true;
+            if (below != grass.blockID && below != dirt.blockID && below != sand.blockID) return false;
+
+            // In 1.2.5 a sugar cane block may stand on grass/dirt/sand only when
+            // one of the four horizontal blocks at the same Y as its support is
+            // water. This catches columns that otherwise look correctly rooted
+            // but are actually illegal floating reeds.
+            return world.getBlockMaterial(x - 1, y - 1, z).isLiquid()
+                    || world.getBlockMaterial(x + 1, y - 1, z).isLiquid()
+                    || world.getBlockMaterial(x, y - 1, z - 1).isLiquid()
+                    || world.getBlockMaterial(x, y - 1, z + 1).isLiquid();
         }
         if (this == deadBush) return below == sand.blockID || below == dirt.blockID;
         if (this == mushroomBrown || this == mushroomRed) return below == grass.blockID || below == dirt.blockID || below == mycelium.blockID;
