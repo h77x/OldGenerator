@@ -34,6 +34,7 @@ public final class World {
     private final Map<Long, TileEntityChest> chests = new HashMap<>();
     private final Map<Long, TileEntityMobSpawner> spawners = new HashMap<>();
     private final Map<Long, Integer> legacyIds = new HashMap<>();
+    private final java.util.Set<Long> attachmentKeys = new java.util.HashSet<>();
     private final Map<Long, Integer> legacyMetadata = new HashMap<>();
     private LeafDistanceCalculator leafDistanceCalculator;
     private boolean deferAttachmentValidation;
@@ -203,9 +204,15 @@ public final class World {
         if (id == Block.air.blockID) {
             legacyIds.remove(key);
             legacyMetadata.remove(key);
+            attachmentKeys.remove(key);
         } else {
             legacyIds.put(key, id);
             legacyMetadata.put(key, stateMeta >= 0 ? stateMeta : meta);
+            if (isAttachmentCandidate(id)) {
+                attachmentKeys.add(key);
+            } else {
+                attachmentKeys.remove(key);
+            }
         }
         if (id == Block.torchWood.blockID && (meta == 0 || meta == 15) && stateMeta < 0
                 && !deferAttachmentValidation) {
@@ -695,7 +702,34 @@ public final class World {
         final long key = blockKey(x, y, z);
         legacyIds.remove(key);
         legacyMetadata.remove(key);
+        attachmentKeys.remove(key);
         access.setType(x, y, z, org.bukkit.Material.AIR, false);
+    }
+
+    private static boolean isAttachmentCandidate(final int id) {
+        return id == Block.torchWood.blockID
+                || id == Block.ladder.blockID
+                || id == Block.button.blockID
+                || id == Block.vine.blockID
+                || id == Block.fence.blockID
+                || id == Block.fenceIron.blockID
+                || id == Block.thinGlass.blockID
+                || id == Block.rail.blockID
+                || id == Block.doorWood.blockID
+                || id == Block.doorSteel.blockID
+                || id == Block.pressurePlatePlanks.blockID
+                || id == Block.crops.blockID
+                || id == Block.sapling.blockID
+                || id == Block.tallGrass.blockID
+                || id == Block.plantYellow.blockID
+                || id == Block.plantRed.blockID
+                || id == Block.deadBush.blockID
+                || id == Block.mushroomBrown.blockID
+                || id == Block.mushroomRed.blockID
+                || id == Block.reed.blockID
+                || id == Block.cactus.blockID
+                || id == Block.waterlily.blockID
+                || id == Block.snow.blockID;
     }
 
     private boolean buttonSupportMatchesMetadata(final int x, final int y, final int z, final int meta) {
@@ -775,7 +809,7 @@ public final class World {
                                               final int maxX, final int maxZ) {
         deferAttachmentValidation = false;
 
-        final java.util.ArrayList<Long> keys = new java.util.ArrayList<>(legacyIds.keySet());
+        final java.util.ArrayList<Long> keys = new java.util.ArrayList<>(attachmentKeys);
         for (int pass = 0; pass < 3; ++pass) {
             boolean changed = false;
 
