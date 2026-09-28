@@ -791,12 +791,16 @@ public final class World {
                     }
                 }
             } else if (id == Block.ladder.blockID && data instanceof Directional directional) {
+                // Legacy ladder metadata identifies the support wall:
+                // 2=south, 3=north, 4=east, 5=west. Preserve that direction
+                // in Bukkit's wall-facing representation so the climbable face
+                // remains on the side opposite the supporting block.
                 directional.setFacing(switch (meta & 7) {
-                    case 2 -> BlockFace.NORTH;
-                    case 3 -> BlockFace.SOUTH;
-                    case 4 -> BlockFace.WEST;
-                    case 5 -> BlockFace.EAST;
-                    default -> BlockFace.NORTH;
+                    case 2 -> BlockFace.SOUTH;
+                    case 3 -> BlockFace.NORTH;
+                    case 4 -> BlockFace.EAST;
+                    case 5 -> BlockFace.WEST;
+                    default -> BlockFace.WEST;
                 });
             } else if (id == Block.rail.blockID && data instanceof Rail rail) {
                 final int shape = meta & 15;
@@ -805,10 +809,12 @@ public final class World {
                 rail.setShape(switch (shape) {
                     case 0 -> Rail.Shape.NORTH_SOUTH;
                     case 1 -> Rail.Shape.EAST_WEST;
-                    case 2 -> Rail.Shape.ASCENDING_EAST;
-                    case 3 -> Rail.Shape.ASCENDING_WEST;
-                    case 4 -> Rail.Shape.ASCENDING_NORTH;
-                    case 5 -> Rail.Shape.ASCENDING_SOUTH;
+                    // 1.2.5: 2=ascending south, 3=ascending north,
+                    // 4=ascending east, 5=ascending west.
+                    case 2 -> Rail.Shape.ASCENDING_SOUTH;
+                    case 3 -> Rail.Shape.ASCENDING_NORTH;
+                    case 4 -> Rail.Shape.ASCENDING_EAST;
+                    case 5 -> Rail.Shape.ASCENDING_WEST;
                     case 6 -> Rail.Shape.SOUTH_EAST;
                     case 7 -> Rail.Shape.SOUTH_WEST;
                     case 8 -> Rail.Shape.NORTH_WEST;
