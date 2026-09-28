@@ -603,8 +603,10 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             generateTree(legacyWorld, random, biomeId, x, y, z);
         }
 
-        // Generated leaves need the legacy distance-from-log value before the
-        // chunk starts ticking; do this once after all trees have been placed.
+        // Calculate legacy leaf distance once after all trees are placed. The
+        // update pass is the load-bearing part of the fix; leaves start with a
+        // safe default distance in createBlockData and are corrected here before
+        // the populated chunk can tick.
         leafDistanceCalculator.update(world);
 
         for (int i = 0; i < bigMushrooms; ++i) {
