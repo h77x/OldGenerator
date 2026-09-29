@@ -3,7 +3,6 @@ package ca.spottedleaf.oldgenerator.world;
 import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
-import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.LimitedRegion;
 import org.bukkit.generator.WorldInfo;
@@ -32,10 +31,6 @@ public final class LimitedRegionBlockAccess implements BlockAccess {
         return y >= this.minHeight && y <= this.maxHeight && this.region.isInRegion(x, y, z);
     }
 
-    @Override
-    public Biome getBiome(final int x, final int y, final int z) {
-        return this.isInRegion(x, y, z) ? this.region.getBiome(x, y, z) : Biome.PLAINS;
-    }
 
     @Override
     public Material getType(final int x, final int y, final int z) {
