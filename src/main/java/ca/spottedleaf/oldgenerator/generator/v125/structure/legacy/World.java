@@ -636,7 +636,7 @@ public final class World {
                 || id == Block.ladder.blockID
                 || id == Block.fence.blockID
                 || id == Block.fenceIron.blockID
-                || id == Block.thinGlass.blockID
+                || id == Block.thinGlass.blockID;
     }
 
     private static boolean isStairBlock(final int id) {
@@ -646,7 +646,7 @@ public final class World {
                 || id == Block.stairsStoneBrickSmooth.blockID;
     }
 
-        private void removeLegacyBlock(final int x, final int y, final int z) {
+    private void removeLegacyBlock(final int x, final int y, final int z) {
         final long key = blockKey(x, y, z);
         legacyIds.remove(key);
         legacyMetadata.remove(key);
@@ -658,7 +658,6 @@ public final class World {
         return id == Block.torchWood.blockID
                 || id == Block.ladder.blockID
                 || id == Block.button.blockID
-                || id == Block.vine.blockID
                 || id == Block.fence.blockID
                 || id == Block.fenceIron.blockID
                 || id == Block.thinGlass.blockID
