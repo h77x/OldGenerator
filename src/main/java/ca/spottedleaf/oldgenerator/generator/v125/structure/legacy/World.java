@@ -327,10 +327,6 @@ public final class World {
             }
             return;
         }
-        if (id == Block.vine.blockID) {
-            refreshLegacyVine(x, y, z);
-            return;
-        }
         if (id != Block.fence.blockID && id != Block.fenceIron.blockID && id != Block.thinGlass.blockID) return;
 
         final BlockData data = access.getBlockData(x, y, z);
@@ -641,7 +637,6 @@ public final class World {
                 || id == Block.fence.blockID
                 || id == Block.fenceIron.blockID
                 || id == Block.thinGlass.blockID
-                || id == Block.vine.blockID;
     }
 
     private static boolean isStairBlock(final int id) {
@@ -651,54 +646,7 @@ public final class World {
                 || id == Block.stairsStoneBrickSmooth.blockID;
     }
 
-    private void refreshLegacyVine(final int x, final int y, final int z) {
-        if (!access.isInRegion(x, y, z)) return;
-        final BlockData data = access.getBlockData(x, y, z);
-        if (!(data instanceof MultipleFacing vine)) return;
-
-        // 1.2.5 vine bits: 1=south, 2=west, 4=north, 8=east.
-        final boolean south = vine.hasFace(BlockFace.SOUTH)
-                && canVineAttachOnSide(x, y, z, 2);
-        final boolean west = vine.hasFace(BlockFace.WEST)
-                && canVineAttachOnSide(x, y, z, 5);
-        final boolean north = vine.hasFace(BlockFace.NORTH)
-                && canVineAttachOnSide(x, y, z, 3);
-        final boolean east = vine.hasFace(BlockFace.EAST)
-                && canVineAttachOnSide(x, y, z, 4);
-        final int meta = (south ? 1 : 0) | (west ? 2 : 0) | (north ? 4 : 0) | (east ? 8 : 0);
-        final long key = blockKey(x, y, z);
-
-        vine.setFace(BlockFace.NORTH, north);
-        vine.setFace(BlockFace.EAST, east);
-        vine.setFace(BlockFace.SOUTH, south);
-        vine.setFace(BlockFace.WEST, west);
-
-        if (meta == 0 && !deferAttachmentValidation) {
-            removeLegacyBlock(x, y, z);
-            return;
-        }
-
-        legacyIds.put(key, Block.vine.blockID);
-        legacyMetadata.put(key, meta);
-        access.setBlockData(x, y, z, vine, false);
-    }
-
-    private boolean canVineAttachOnSide(final int x, final int y, final int z, final int side) {
-        final int neighbourId;
-        switch (side) {
-            case 2 -> neighbourId = getBlockId(x, y, z + 1);
-            case 3 -> neighbourId = getBlockId(x, y, z - 1);
-            case 4 -> neighbourId = getBlockId(x + 1, y, z);
-            case 5 -> neighbourId = getBlockId(x - 1, y, z);
-            default -> { return false; }
-        }
-        // Tree generation in 1.2.5 explicitly hangs vines from leaf blocks,
-        // while the standalone vine generator only accepts normal solid supports.
-        return neighbourId == Block.leaves.blockID
-                || Block.vine.canPlaceBlockOnSide(this, x, y, z, side);
-    }
-
-    private void removeLegacyBlock(final int x, final int y, final int z) {
+        private void removeLegacyBlock(final int x, final int y, final int z) {
         final long key = blockKey(x, y, z);
         legacyIds.remove(key);
         legacyMetadata.remove(key);
@@ -875,9 +823,6 @@ public final class World {
                         }
                         break;
                     }
-                    case 106: // vines
-                        refreshLegacyVine(x, y, z);
-                        break;
                     case 85: // fence
                     case 101: // iron bars
                     case 102: // glass pane
@@ -1035,12 +980,15 @@ public final class World {
             } else if (id == Block.ladder.blockID && data instanceof Directional directional) {
                 // Legacy ladder metadata identifies the support wall:
                 // 2=south, 3=north, 4=east, 5=west.
+                // Bukkit's facing is the direction away from the supporting wall.
+                // Legacy 1.2.5 metadata identifies that supporting wall:
+                // 2=south, 3=north, 4=east, 5=west.
                 directional.setFacing(switch (meta & 7) {
-                    case 2 -> BlockFace.SOUTH;
-                    case 3 -> BlockFace.NORTH;
-                    case 4 -> BlockFace.EAST;
-                    case 5 -> BlockFace.WEST;
-                    default -> BlockFace.WEST;
+                    case 2 -> BlockFace.NORTH;
+                    case 3 -> BlockFace.SOUTH;
+                    case 4 -> BlockFace.WEST;
+                    case 5 -> BlockFace.EAST;
+                    default -> BlockFace.NORTH;
                 });
             } else if (id == Block.rail.blockID && data instanceof Rail rail) {
                 final int shape = meta & 15;
