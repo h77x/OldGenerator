@@ -31,6 +31,7 @@ public final class LimitedRegionBlockAccess implements BlockAccess {
         return y >= this.minHeight && y <= this.maxHeight && this.region.isInRegion(x, y, z);
     }
 
+
     @Override
     public Material getType(final int x, final int y, final int z) {
         return this.isInRegion(x, y, z) ? this.region.getType(x, y, z) : Material.AIR;

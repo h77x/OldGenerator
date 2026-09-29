@@ -26,6 +26,10 @@ public final class V125StructureGenerator {
                            final Random populationRandom) {
         final StructureState state = this.worlds.computeIfAbsent(seed, StructureState::new);
         final World world = new World(seed, access, biomes);
+        // Structure components can be ordered independently of their supporting
+        // blocks. Keep attachment-sensitive blocks until the complete structure
+        // population pass has finished, matching the legacy neighbour-update model.
+        world.setAttachmentValidationDeferred(true);
         // Vanilla 1.2.5 MapGenStructure.generateStructuresInChunk() operates on
         // the chunk's population window, which starts eight blocks into the chunk.
         // Keeping this offset is important for structure/component intersection and
@@ -123,6 +127,7 @@ public final class V125StructureGenerator {
             }
         }
 
+        world.validateGeneratedAttachments(populationMinX, populationMinZ, populationMinX + 15, populationMinZ + 15);
         return new Result(village);
     }
 

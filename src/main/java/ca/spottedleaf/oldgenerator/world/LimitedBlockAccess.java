@@ -65,6 +65,7 @@ public final class LimitedBlockAccess implements BlockAccess {
         return chunkX >= this.lowerX && chunkZ >= this.lowerZ && chunkX <= this.upperX && chunkZ <= this.upperZ;
     }
 
+
     @Override
     public Material getType(final int x, final int y, final int z) {
         return this.getChunk(x >> 4, z >> 4).getType(x, y, z);

@@ -20,6 +20,7 @@ public interface BlockAccess {
 
     public Material getType(final int x, final int y, final int z);
 
+
     public void setType(final int x, final int y, final int z, final Material material);
 
     public void setType(final int x, final int y, final int z, final Material material, final boolean applyPhysics);

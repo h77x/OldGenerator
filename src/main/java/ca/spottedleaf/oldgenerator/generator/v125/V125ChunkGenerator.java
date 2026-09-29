@@ -7,6 +7,7 @@ import ca.spottedleaf.oldgenerator.generator.v125.populate.*;
 import ca.spottedleaf.oldgenerator.generator.v125.populate.legacy.*;
 import ca.spottedleaf.oldgenerator.generator.v125.tree.*;
 import ca.spottedleaf.oldgenerator.generator.v125.structure.V125StructureGenerator;
+import ca.spottedleaf.oldgenerator.util.LeafDistanceCalculator;
 import ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.Block;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.BiomeProvider;
@@ -39,6 +40,8 @@ public final class V125ChunkGenerator extends ChunkGenerator {
     private final V125BiomeSource biomeSource = new V125BiomeSource();
     private final V125StructureGenerator structureGenerator = new V125StructureGenerator();
     private final ThreadLocal<NoiseState> noiseStates = new ThreadLocal<>();
+    private final ThreadLocal<V125Caves> cavesStates = new ThreadLocal<>();
+    private final ThreadLocal<V125Ravine> ravineStates = new ThreadLocal<>();
 
     private static final class NoiseState {
         final long seed;
@@ -66,6 +69,24 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         if (state == null || state.seed != seed) {
             state = new NoiseState(seed);
             this.noiseStates.set(state);
+        }
+        return state;
+    }
+
+    private V125Caves caves(final long seed) {
+        V125Caves state = this.cavesStates.get();
+        if (state == null || state.getSeed() != seed) {
+            state = new V125Caves(seed);
+            this.cavesStates.set(state);
+        }
+        return state;
+    }
+
+    private V125Ravine ravine(final long seed) {
+        V125Ravine state = this.ravineStates.get();
+        if (state == null || state.getSeed() != seed) {
+            state = new V125Ravine(seed);
+            this.ravineStates.set(state);
         }
         return state;
     }
@@ -172,8 +193,8 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         }
 
         this.applySurface(data, biomes, seed, chunkX, chunkZ);
-        new V125Caves(seed).generate(chunkX, chunkZ, data, this.biomeSource);
-        new V125Ravine(seed).generate(chunkX, chunkZ, data, this.biomeSource);
+        this.caves(seed).generate(chunkX, chunkZ, data, this.biomeSource);
+        this.ravine(seed).generate(chunkX, chunkZ, data, this.biomeSource);
         return data;
     }
 
@@ -434,6 +455,7 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         final boolean villageStart = structures.hasVillage();
         final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World legacyWorld =
                 new ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World(seed, access, this.biomeSource);
+        legacyWorld.setAttachmentValidationDeferred(true);
 
         /*
          * ChunkProviderGenerate.populate():
@@ -464,6 +486,10 @@ public final class V125ChunkGenerator extends ChunkGenerator {
 
         decorateBiome(legacyWorld, access, random, biomeId, blockX, blockZ);
         freezeAndSnow(legacyWorld, blockX, blockZ);
+
+        // Apply the equivalent of the final legacy neighbour/update phase after
+        // every generator has had a chance to place its supporting blocks.
+        legacyWorld.validateGeneratedAttachments(blockX, blockZ, blockX + 15, blockZ + 15);
     }
 
     private void generateOres(final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.World world,
@@ -572,6 +598,9 @@ public final class V125ChunkGenerator extends ChunkGenerator {
         int treeCount = trees;
         if (random.nextInt(10) == 0) ++treeCount;
 
+        final LeafDistanceCalculator leafDistanceCalculator = new LeafDistanceCalculator();
+        legacyWorld.setLeafDistanceCalculator(leafDistanceCalculator);
+
         for (int i = 0; i < treeCount; ++i) {
             final int x = baseX + random.nextInt(16) + 8;
             final int z = baseZ + random.nextInt(16) + 8;
@@ -579,6 +608,12 @@ public final class V125ChunkGenerator extends ChunkGenerator {
             final int y = Math.min(127, legacyWorld.getHeightValue(x, z));
             generateTree(legacyWorld, random, biomeId, x, y, z);
         }
+
+        // Calculate legacy leaf distance once after all trees are placed. The
+        // update pass is the load-bearing part of the fix; leaves start with a
+        // safe default distance in createBlockData and are corrected here before
+        // the populated chunk can tick.
+        leafDistanceCalculator.update(world);
 
         for (int i = 0; i < bigMushrooms; ++i) {
             final int x = baseX + random.nextInt(16) + 8;

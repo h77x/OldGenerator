@@ -2,6 +2,9 @@ package ca.spottedleaf.oldgenerator.generator.v125.structure.legacy;
 
 import org.bukkit.Material;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 public final class Block {
     public final int blockID;
     public final ca.spottedleaf.oldgenerator.generator.v125.structure.legacy.Material blockMaterial;
@@ -104,6 +107,21 @@ public final class Block {
     public static final Block mycelium = b(110, Material.MYCELIUM);
     public static final Block vine = b(106, Material.VINE);
 
+    private static final Map<Material, Integer> MATERIAL_TO_ID = createMaterialToId();
+
+    private static Map<Material, Integer> createMaterialToId() {
+        final Map<Material, Integer> result = new EnumMap<>(Material.class);
+        for (final Block block : blocksList) {
+            if (block != null) result.putIfAbsent(block.material, block.blockID);
+        }
+        return result;
+    }
+
+    public static int idForMaterial(final Material material) {
+        final Integer id = MATERIAL_TO_ID.get(material);
+        return id == null ? -1 : id;
+    }
+
     public boolean canPlaceBlockAt(final World world, final int x, final int y, final int z) {
         if (!world.isAirBlock(x, y, z)) return false;
         if (this == waterlily) {
@@ -130,7 +148,17 @@ public final class Block {
             return below == cactus.blockID || below == sand.blockID;
         }
         if (this == reed) {
-            return below == reed.blockID || below == grass.blockID || below == dirt.blockID || below == sand.blockID;
+            if (below == reed.blockID) return true;
+            if (below != grass.blockID && below != dirt.blockID && below != sand.blockID) return false;
+
+            // In 1.2.5 a sugar cane block may stand on grass/dirt/sand only when
+            // one of the four horizontal blocks at the same Y as its support is
+            // water. This catches columns that otherwise look correctly rooted
+            // but are actually illegal floating reeds.
+            return world.getBlockMaterial(x - 1, y - 1, z).isLiquid()
+                    || world.getBlockMaterial(x + 1, y - 1, z).isLiquid()
+                    || world.getBlockMaterial(x, y - 1, z - 1).isLiquid()
+                    || world.getBlockMaterial(x, y - 1, z + 1).isLiquid();
         }
         if (this == deadBush) return below == sand.blockID || below == dirt.blockID;
         if (this == mushroomBrown || this == mushroomRed) return below == grass.blockID || below == dirt.blockID || below == mycelium.blockID;
