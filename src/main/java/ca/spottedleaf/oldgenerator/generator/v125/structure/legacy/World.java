@@ -65,8 +65,6 @@ public final class World {
         final Integer stored = legacyIds.get(key);
         if (stored != null) return stored;
         final org.bukkit.Material m=access.getType(x,y,z);
-        if (m == org.bukkit.Material.WATER) return Block.waterStill.blockID;
-        if (m == org.bukkit.Material.LAVA) return Block.lavaStill.blockID;
         if (m == org.bukkit.Material.OAK_LOG || m == org.bukkit.Material.SPRUCE_LOG
                 || m == org.bukkit.Material.BIRCH_LOG || m == org.bukkit.Material.JUNGLE_LOG
                 || m == org.bukkit.Material.OAK_WOOD || m == org.bukkit.Material.SPRUCE_WOOD
@@ -977,10 +975,7 @@ public final class World {
                     }
                 }
             } else if (id == Block.ladder.blockID && data instanceof Directional directional) {
-                // Legacy ladder metadata identifies the support wall:
-                // 2=south, 3=north, 4=east, 5=west.
                 // Bukkit's facing is the direction away from the supporting wall.
-                // Legacy 1.2.5 metadata identifies that supporting wall:
                 // 2=south, 3=north, 4=east, 5=west.
                 directional.setFacing(switch (meta & 7) {
                     case 2 -> BlockFace.NORTH;
